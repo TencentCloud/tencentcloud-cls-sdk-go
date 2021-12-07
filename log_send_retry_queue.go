@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// RetryQueue cache ProducerBatch and retry latter
+// LogSendRetryQueue RetryQueue cache ProducerBatch and retry latter
 type LogSendRetryQueue struct {
 	batch []*ProducerBatch
 	mutex sync.Mutex
