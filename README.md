@@ -78,7 +78,7 @@ func (callback *Callback) Fail(result *Result) {
 | 参数                | 类型   | 描述                                                         |
 | ------------------- | ------ | ------------------------------------------------------------ |
 | TotalSizeLnBytes    | Int64  | 实例能缓存的日志大小上限，默认为 100MB。       |
-| MaxIoWorkerCount    | Int64  | client能并发的最多"goroutine"的数量，默认为50 |
+| MaxSendWorkerCount    | Int64  | client能并发的最多"goroutine"的数量，默认为50 |
 | MaxBlockSec         | Int    | 如果client可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。<br/>如果超过这个时间后所需空间仍无法得到满足，send 方法会抛出TimeoutException。如果将该值设为0，当所需空间无法得到满足时，send 方法会立即抛出 TimeoutException。如果您希望 send 方法一直阻塞直到所需空间得到满足，可将该值设为负数。 |
 | MaxBatchSize        | Int64  | 当一个Batch中缓存的日志大小大于等于 batchSizeThresholdInBytes 时，该 batch 将被发送，默认为 512 KB，最大可设置成 5MB。 |
 | MaxBatchCount       | Int    | 当一个Batch中缓存的日志条数大于等于 batchCountThreshold 时，该 batch 将被发送，默认为 4096，最大可设置成 40960。 |
