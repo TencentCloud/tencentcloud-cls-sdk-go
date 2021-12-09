@@ -6,7 +6,7 @@ Tencent CLS Log SDK
 ### USAGE
 
 ```
-git get git.woa.com/cls_team/tencentcloud-cls-sdk-go
+git get github.com/TencentCloud/tencentcloud-cls-sdk-go
 ```
 
 ### 为什么要使用CLS Log SDK
