@@ -56,12 +56,11 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 			}
 			return
 		}
-		if err.Code == BAD_REQUEST {
-			worker.addErrorMessageToBatchAttempt(producerBatch, err)
-			worker.executeFailedCallback(producerBatch)
-			return
-		}
-
+		//if err.Code == BAD_REQUEST {
+		//	worker.addErrorMessageToBatchAttempt(producerBatch, err)
+		//	worker.executeFailedCallback(producerBatch)
+		//	return
+		//}
 		if producerBatch.attemptCount < producerBatch.maxRetryTimes {
 			worker.addErrorMessageToBatchAttempt(producerBatch, err)
 			retryWaitTime := producerBatch.baseRetryBackoffMs * int64(math.Pow(2, float64(producerBatch.attemptCount)-1))

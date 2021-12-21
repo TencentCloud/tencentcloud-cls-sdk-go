@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -78,7 +76,7 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 	return client, nil
 }
 
-// send cls实际发送接口
+// Send cls实际发送接口
 func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
@@ -115,10 +113,11 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 
 	resp, err := client.client.Do(req)
 	if err != nil {
-		return NewError(-1, "", BAD_REQUEST, err)
+		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(ioutil.Discard, resp.Body)
+	//_, _ = io.Copy(ioutil.Discard, resp.Body)
+
 	// 401, 403, 404 直接返回错误
 	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 {
 		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
