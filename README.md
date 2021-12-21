@@ -15,9 +15,13 @@ git get github.com/TencentCloud/tencentcloud-cls-sdk-go
 - 优雅关闭：通过调用close方法，producer会将所有其缓存的数据进行发送，防止日志丢失。
 - 感知每一条日志的成功状态： 用户可以自定义CallBack方法的实现，监控每一条日志的状态
 - 使用简单： 通过简单配置，就可以实现复杂的日志上传聚合、失败重试等逻辑
-- 失败重试： 429、500 等服务端错误，都会进行重试， 401、403、404 默认不重试
+- 失败重试： 429、500 等服务端错误，都会进行重试
 - 高性能： 得益于go语言的高并发能力
 
+
+### CLS Host
+
+https://cloud.tencent.com/document/product/614/18940
 
 ### Demo
 

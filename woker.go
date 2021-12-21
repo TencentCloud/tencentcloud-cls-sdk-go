@@ -37,7 +37,6 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 		if producerBatch.attemptCount < producerBatch.maxReservedAttempts {
 			attempt := NewAttempt(true, "", "", "", GetTimeMs(time.Now().UnixNano()))
 			producerBatch.result.attemptList = append(producerBatch.result.attemptList, attempt)
-
 		}
 		producerBatch.result.successful = true
 		asyncAtomic.AddInt64(&worker.producer.producerLogGroupSize, -producerBatch.totalDataSize)
