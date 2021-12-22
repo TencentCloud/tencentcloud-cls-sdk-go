@@ -68,7 +68,15 @@ func validateProducerConfig(producerConfig *AsyncProducerClientConfig) *AsyncPro
 	if producerConfig.LingerMs < 100 {
 		producerConfig.LingerMs = 2000
 	}
-
+	if producerConfig.IdleConn <= 0 {
+		producerConfig.IdleConn = 50
+	}
+	if producerConfig.Timeout <= 0 {
+		producerConfig.Timeout = 10000
+	}
+	if producerConfig.MaxRetryBackoffMs <= 0 {
+		producerConfig.MaxRetryBackoffMs = 50 * 1000
+	}
 	if producerConfig.Source == "" {
 		producerConfig.Source, _ = GetLocalIP()
 	}
