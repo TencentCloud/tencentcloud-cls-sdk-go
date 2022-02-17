@@ -5,8 +5,8 @@ Tencent CLS Log SDK
 
 ### USAGE
 
-```
-go get github.com/TencentCloud/tencentcloud-cls-sdk-go
+```shell
+go get github.com/tencentcloud/tencentcloud-cls-sdk-go
 ```
 
 ### 为什么要使用CLS Log SDK
@@ -25,19 +25,29 @@ https://cloud.tencent.com/document/product/614/18940
 
 ### Demo
 
-```
+```go
+package main
+
+import (
+	"fmt"
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	"log"
+	"sync"
+	"time"
+)
+
 func main() {
-    producerConfig := GetDefaultAsyncProducerClientConfig()
+	producerConfig := cls.GetDefaultAsyncProducerClientConfig()
 	producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
 	topicId := ""
-	producerInstance, err := NewAsyncProducerClient(producerConfig)
+	producerInstance, err := cls.NewAsyncProducerClient(producerConfig)
 	if err != nil {
-		t.Error(err)
+		log.Fatalln(err)
 	}
-
 	producerInstance.Start()
+	defer producerInstance.Close(60000)
 	var m sync.WaitGroup
 	callBack := &Callback{}
 	for i := 0; i < 10; i++ {
@@ -45,29 +55,32 @@ func main() {
 		go func() {
 			defer m.Done()
 			for i := 0; i < 1000; i++ {
-				log := NewCLSLog(time.Now().Unix(), map[string]string{"content": "hello world| I'm from Beijing", "content2": fmt.Sprintf("%v", i)})
-				err = producerInstance.SendLog(topicId, log, callBack)
-				if err != nil {
-					t.Error(err)
+				clog := cls.NewCLSLog(
+					time.Now().Unix(),
+					map[string]string{
+						"content":  "hello world| I'm from Beijing",
+						"content2": fmt.Sprintf("%v", i),
+					},
+				)
+				if err = producerInstance.SendLog(topicId, clog, callBack); err != nil {
+					log.Fatalln(err)
 				}
 			}
 		}()
 	}
 	m.Wait()
-	producerInstance.Close(60000)
 }
 
-type Callback struct {
-}
+type Callback struct{}
 
-func (callback *Callback) Success(result *Result) {
+func (callback *Callback) Success(result *cls.Result) {
 	attemptList := result.GetReservedAttempts()
 	for _, attempt := range attemptList {
 		fmt.Printf("%+v \n", attempt)
 	}
 }
 
-func (callback *Callback) Fail(result *Result) {
+func (callback *Callback) Fail(result *cls.Result) {
 	fmt.Println(result.IsSuccessful())
 	fmt.Println(result.GetErrorCode())
 	fmt.Println(result.GetErrorMessage())
@@ -75,6 +88,7 @@ func (callback *Callback) Fail(result *Result) {
 	fmt.Println(result.GetRequestId())
 	fmt.Println(result.GetTimeStampMs())
 }
+
 ```
 
 ### 配置参数详解
