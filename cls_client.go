@@ -2,8 +2,10 @@ package tencentcloud_cls_sdk_go
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -76,6 +78,11 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 	return client, nil
 }
 
+type ErrorMessage struct {
+	Code    string `json:"errorcode"`
+	Message string `json:"errormessage"`
+}
+
 // Send cls实际发送接口
 func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
@@ -110,22 +117,31 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	req.Header.Add("Content-Type", "application/x-protobuf")
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("x-cls-compress-type", "lz4")
+	req.Header.Add("cls-producer-sdk", "go-1.0.2")
 
 	resp, err := client.client.Do(req)
 	if err != nil {
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
 	}
 	defer resp.Body.Close()
-	//_, _ = io.Copy(ioutil.Discard, resp.Body)
 
 	// 401, 403, 404 直接返回错误
-	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 {
-		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
+	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
+		v, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
+		}
+		var message ErrorMessage
+		if err := json.Unmarshal(v, &message); err != nil {
+			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
+		}
+		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), message.Code, errors.New(message.Message))
 	}
 	// 200 直接返回
 	if resp.StatusCode == 200 {
 		return nil
 	}
+
 	// 如果被服务端写入限速
 	if resp.StatusCode == 429 {
 		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), WRITE_QUOTA_EXCEED, errors.New("write quota exceed"))
