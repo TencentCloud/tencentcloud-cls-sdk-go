@@ -55,11 +55,13 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 			}
 			return
 		}
-		//if err.Code == BAD_REQUEST {
-		//	worker.addErrorMessageToBatchAttempt(producerBatch, err)
-		//	worker.executeFailedCallback(producerBatch)
-		//	return
-		//}
+
+		// 413 -- 404 -- 401 不再重新上传
+		if err.HTTPCode == 413 || err.HTTPCode == 404 || err.HTTPCode == 401 {
+			worker.addErrorMessageToBatchAttempt(producerBatch, err)
+			worker.executeFailedCallback(producerBatch)
+			return
+		}
 		if producerBatch.attemptCount < producerBatch.maxRetryTimes {
 			worker.addErrorMessageToBatchAttempt(producerBatch, err)
 			retryWaitTime := producerBatch.baseRetryBackoffMs * int64(math.Pow(2, float64(producerBatch.attemptCount)-1))

@@ -125,7 +125,7 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	}
 	defer resp.Body.Close()
 
-	// 401, 403, 404 直接返回错误
+	// 401, 403, 404, 413 直接返回错误
 	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
 		v, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
