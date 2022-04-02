@@ -77,18 +77,24 @@ func (accumulator *Accumulator) addLogToProducerBatch(topicId string, logData in
 	accumulator.lock.Lock()
 	if mlog, ok := logData.(*Log); ok {
 		if producerBatch, ok := accumulator.logTopicData[topicId]; ok == true {
-			logSize := int64(GetLogSizeCalculate(mlog))
-			asyncAtomic.AddInt64(&producerBatch.totalDataSize, logSize)
-			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, logSize)
+			logSize, err := GetLogSizeCalculate(mlog)
+			if err != nil {
+				return err
+			}
+			asyncAtomic.AddInt64(&producerBatch.totalDataSize, int64(logSize))
+			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, int64(logSize))
 			accumulator.addOrSendProducerBatch(topicId, producerBatch, mlog, callback)
 		} else {
 			accumulator.createNewProducerBatch(mlog, callback, topicId)
 		}
 	} else if logList, ok := logData.([]*Log); ok {
 		if producerBatch, ok := accumulator.logTopicData[topicId]; ok == true {
-			logListSize := int64(GetLogListSize(logList))
-			asyncAtomic.AddInt64(&producerBatch.totalDataSize, logListSize)
-			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, logListSize)
+			logListSize, err := GetLogListSize(logList)
+			if err != nil {
+				return err
+			}
+			asyncAtomic.AddInt64(&producerBatch.totalDataSize, int64(logListSize))
+			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, int64(logListSize))
 			accumulator.addOrSendProducerBatch(topicId, producerBatch, logList, callback)
 		} else {
 			accumulator.createNewProducerBatch(logList, callback, topicId)

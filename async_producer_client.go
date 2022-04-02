@@ -108,10 +108,10 @@ func (producer *AsyncProducerClient) waitTime() error {
 				return nil
 			}
 		}
-		return errors.New("Over producer set maximum blocking time")
+		return errors.New("over producer set maximum blocking time")
 	} else if producer.asyncProducerClientConfig.MaxBlockSec == 0 {
 		if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.asyncProducerClientConfig.TotalSizeLnBytes {
-			return errors.New("Over producer set maximum blocking time")
+			return errors.New("over producer set maximum blocking time")
 		}
 	} else if producer.asyncProducerClientConfig.MaxBlockSec < 0 {
 		for {

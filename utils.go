@@ -2,6 +2,7 @@ package tencentcloud_cls_sdk_go
 
 import (
 	"errors"
+	"fmt"
 	"net"
 
 	"google.golang.org/protobuf/proto"
@@ -26,24 +27,32 @@ func GetTimeMs(t int64) int64 {
 	return t / 1000 / 1000
 }
 
-func GetLogSizeCalculate(log *Log) int {
+func GetLogSizeCalculate(log *Log) (int, error) {
 	sizeInBytes := 4
 	logContent := log.GetContents()
 	count := len(logContent)
+
 	for i := 0; i < count; i++ {
+		if len(*logContent[i].Value) > 1*1024*1024 {
+			return 0, fmt.Errorf("content value can not be than 1M")
+		}
 		sizeInBytes += len(*logContent[i].Value)
 		sizeInBytes += len(*logContent[i].Key)
 	}
 
-	return sizeInBytes
+	return sizeInBytes, nil
 
 }
-func GetLogListSize(logList []*Log) int {
+func GetLogListSize(logList []*Log) (int, error) {
 	sizeInBytes := 0
 	for _, log := range logList {
-		sizeInBytes += GetLogSizeCalculate(log)
+		sz, err := GetLogSizeCalculate(log)
+		if err != nil {
+			return 0, err
+		}
+		sizeInBytes += sz
 	}
-	return sizeInBytes
+	return sizeInBytes, nil
 }
 
 // GetLocalIP get local IP with string format
