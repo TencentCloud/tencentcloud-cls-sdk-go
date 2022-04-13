@@ -21,11 +21,12 @@ const (
 )
 
 type Options struct {
-	Host      string
-	SecretID  string
-	SecretKEY string
-	Timeout   int
-	IdleConn  int
+	Host        string
+	SecretID    string
+	SecretKEY   string
+	SecretToken string
+	Timeout     int
+	IdleConn    int
 }
 
 func (options *Options) withTimeoutDefault() {
@@ -48,6 +49,22 @@ func (options *Options) validateOptions() *CLSError {
 	if options.SecretID == "" || options.SecretKEY == "" {
 		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
 	}
+	return nil
+}
+
+func (client *CLSClient) ResetSecretToken(secretID string, secretKEY string, secretToken string) *CLSError {
+	if secretID == "" {
+		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("secretID cannot be empty"))
+	}
+	if secretKEY == "" {
+		return NewError(-1, "", MISS_ACCESS_SECRET, errors.New("secretKEY cannot be empty"))
+	}
+	if secretToken == "" {
+		return NewError(-1, "", MISS_ACCESS_TOKEN, errors.New("secretToken cannot be empty"))
+	}
+	client.options.SecretToken = secretToken
+	client.options.SecretID = secretID
+	client.options.SecretKEY = secretKEY
 	return nil
 }
 
@@ -117,7 +134,11 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	req.Header.Add("Content-Type", "application/x-protobuf")
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("x-cls-compress-type", "lz4")
-	req.Header.Add("cls-producer-sdk", "go-1.0.2")
+	req.Header.Add("User-Agent", "cls-go-sdk-1.0.2")
+
+	if client.options.SecretToken != "" {
+		req.Header.Add("X-Cls-Token", client.options.SecretToken)
+	}
 
 	resp, err := client.client.Do(req)
 	if err != nil {

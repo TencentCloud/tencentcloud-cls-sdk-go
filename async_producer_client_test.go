@@ -31,21 +31,25 @@ func TestNewAsyncProducerClient(t *testing.T) {
 	producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
+	producerConfig.AccessToken = ""
+	producerConfig.Retries = 10
 	topicId := ""
 	producerInstance, err := NewAsyncProducerClient(producerConfig)
 	if err != nil {
 		t.Error(err)
 	}
 
+	producerInstance.Client.ResetSecretToken("xx", "xxx", "xxxx")
 	producerInstance.Start()
+
 	var m sync.WaitGroup
 	callBack := &Callback{}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		m.Add(1)
 		go func() {
 			defer m.Done()
-			for i := 0; i < 1000; i++ {
-				log := NewCLSLog(time.Now().Unix(), map[string]string{"content": "hello world| I'm from Beijing", "content2": fmt.Sprintf("%v", i)})
+			for i := 0; i < 10; i++ {
+				log := NewCLSLog(time.Now().Unix(), map[string]string{"content": "--------", "content2": fmt.Sprintf("%v", i)})
 				err = producerInstance.SendLog(topicId, log, callBack)
 				if err != nil {
 					t.Error(err)
@@ -54,5 +58,6 @@ func TestNewAsyncProducerClient(t *testing.T) {
 		}()
 	}
 	m.Wait()
+
 	producerInstance.Close(60000)
 }

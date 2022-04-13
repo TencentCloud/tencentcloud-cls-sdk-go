@@ -17,6 +17,7 @@ type AsyncProducerClient struct {
 	timerTaskWaitGroup        *sync.WaitGroup
 	sendThreadPoolWaitGroup   *sync.WaitGroup
 	producerLogGroupSize      int64
+	Client                    *CLSClient
 }
 
 // NewAsyncProducerClient 初始化Async Producer Client
@@ -25,15 +26,17 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 	asyncProducerClient.asyncProducerClientConfig = validateProducerConfig(asyncProducerClientConfig)
 
 	client, err := NewCLSClient(&Options{
-		Host:      asyncProducerClientConfig.Endpoint,
-		SecretID:  asyncProducerClientConfig.AccessKeyID,
-		SecretKEY: asyncProducerClientConfig.AccessKeySecret,
-		Timeout:   asyncProducerClientConfig.Timeout,
-		IdleConn:  asyncProducerClientConfig.IdleConn,
+		Host:        asyncProducerClientConfig.Endpoint,
+		SecretID:    asyncProducerClientConfig.AccessKeyID,
+		SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
+		SecretToken: asyncProducerClientConfig.AccessToken,
+		Timeout:     asyncProducerClientConfig.Timeout,
+		IdleConn:    asyncProducerClientConfig.IdleConn,
 	})
 	if err != nil {
 		return nil, errors.New(err.Message)
 	}
+	asyncProducerClient.Client = client
 	retryQueue := NewRetryQueue()
 	worker := NewWorker(client, retryQueue, asyncProducerClient.asyncProducerClientConfig.MaxSendWorkerCount, asyncProducerClient)
 	asyncProducerClient.threadPool = NewSendThreadPool(worker)
@@ -142,7 +145,7 @@ func (producer *AsyncProducerClient) Close(timeoutMs int64) error {
 			return nil
 		}
 		if time.Since(startCloseTime) > time.Duration(timeoutMs)*time.Millisecond {
-			return errors.New("The producer timeout closes, and some of the cached data may not be sent properly")
+			return errors.New("the producer timeout closes, and some of the cached data may not be sent properly")
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

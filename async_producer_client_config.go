@@ -15,6 +15,7 @@ type AsyncProducerClientConfig struct {
 	Endpoint            string
 	AccessKeyID         string
 	AccessKeySecret     string
+	AccessToken         string
 	Source              string
 	Timeout             int
 	IdleConn            int
