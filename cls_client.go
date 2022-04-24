@@ -21,12 +21,13 @@ const (
 )
 
 type Options struct {
-	Host        string
-	SecretID    string
-	SecretKEY   string
-	SecretToken string
-	Timeout     int
-	IdleConn    int
+	Host         string
+	SecretID     string
+	SecretKEY    string
+	SecretToken  string
+	Timeout      int
+	IdleConn     int
+	CompressType string
 }
 
 func (options *Options) withTimeoutDefault() {
@@ -49,6 +50,11 @@ func (options *Options) validateOptions() *CLSError {
 	if options.SecretID == "" || options.SecretKEY == "" {
 		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
 	}
+
+	if options.CompressType == "" {
+		options.CompressType = "lz4"
+	}
+
 	return nil
 }
 
@@ -100,6 +106,41 @@ type ErrorMessage struct {
 	Message string `json:"errormessage"`
 }
 
+func (client *CLSClient) lz4Compress(body []byte, params url.Values, urlReport string) (*http.Request, *CLSError) {
+	out := make([]byte, lz4.CompressBlockBound(len(body)))
+	var hashTable [1 << 16]int
+	n, err := lz4.CompressBlock(body, out, hashTable[:])
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+	// copy incompressible data as lz4 format
+	if n == 0 {
+		n, _ = copyIncompressible(body, out)
+	}
+	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(out[:n]))
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+	req.URL.RawQuery = params.Encode()
+	req.Header.Add("x-cls-compress-type", "lz4")
+	return req, nil
+}
+
+func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport string) (*http.Request, *CLSError) {
+	data, err := ZSTDCompress(ZstdEncoderParams{CompressionLevelDefault}, nil, body)
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+	req.URL.RawQuery = params.Encode()
+	req.Header.Add("x-cls-compress-type", "zstd")
+	return req, nil
+}
+
 // Send cls实际发送接口
 func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
@@ -111,35 +152,29 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 
 	var logGroupList LogGroupList
 	logGroupList.LogGroupList = append(logGroupList.LogGroupList, group)
-
 	body, _ := logGroupList.Marshal()
 
-	out := make([]byte, lz4.CompressBlockBound(len(body)))
-	var hashTable [1 << 16]int
-	n, err := lz4.CompressBlock(body, out, hashTable[:])
-	if err != nil {
-		return NewError(-1, "", BAD_REQUEST, err)
-	}
-	// copy incompressible data as lz4 format
-	if n == 0 {
-		n, _ = copyIncompressible(body, out)
-	}
-	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(out[:n]))
+	var req *http.Request
+	var clsErr *CLSError
 
-	if err != nil {
-		return NewError(-1, "", BAD_REQUEST, err)
+	if client.options.CompressType == "zstd" {
+		if req, clsErr = client.zstdCompress(body, params, urlReport); clsErr != nil {
+			return clsErr
+		}
+	} else {
+		if req, clsErr = client.lz4Compress(body, params, urlReport); clsErr != nil {
+			return clsErr
+		}
 	}
-	req.URL.RawQuery = params.Encode()
+
 	req.Header.Add("Host", client.options.Host)
 	req.Header.Add("Content-Type", "application/x-protobuf")
 	req.Header.Add("Authorization", authorization)
-	req.Header.Add("x-cls-compress-type", "lz4")
 	req.Header.Add("User-Agent", "cls-go-sdk-1.0.2")
 
 	if client.options.SecretToken != "" {
 		req.Header.Add("X-Cls-Token", client.options.SecretToken)
 	}
-
 	resp, err := client.client.Do(req)
 	if err != nil {
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)

@@ -19,6 +19,7 @@ type AsyncProducerClientConfig struct {
 	Source              string
 	Timeout             int
 	IdleConn            int
+	CompressType        string
 }
 
 // GetDefaultAsyncProducerClientConfig 获取默认的Producer Config

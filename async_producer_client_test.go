@@ -28,18 +28,17 @@ func (callback *Callback) Fail(result *Result) {
 
 func TestNewAsyncProducerClient(t *testing.T) {
 	producerConfig := GetDefaultAsyncProducerClientConfig()
-	producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+	producerConfig.Endpoint = "ap-guangzhou-open.cls.tencentcs.com"
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
 	producerConfig.AccessToken = ""
 	producerConfig.Retries = 10
+	producerConfig.CompressType = "zstd"
 	topicId := ""
 	producerInstance, err := NewAsyncProducerClient(producerConfig)
 	if err != nil {
 		t.Error(err)
 	}
-
-	producerInstance.Client.ResetSecretToken("xx", "xxx", "xxxx")
 	producerInstance.Start()
 
 	var m sync.WaitGroup
