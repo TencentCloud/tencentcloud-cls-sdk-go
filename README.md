@@ -26,15 +26,25 @@ https://cloud.tencent.com/document/product/614/18940
 ### Demo
 
 ```
+package main
+
+import (
+	"fmt"
+	"github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	"sync"
+	"time"
+)
+
 func main() {
-    producerConfig := GetDefaultAsyncProducerClientConfig()
+	producerConfig := tencentcloud_cls_sdk_go.GetDefaultAsyncProducerClientConfig()
 	producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
 	topicId := ""
-	producerInstance, err := NewAsyncProducerClient(producerConfig)
+	producerInstance, err := tencentcloud_cls_sdk_go.NewAsyncProducerClient(producerConfig)
 	if err != nil {
-		t.Error(err)
+		fmt.Println(err)
+		return
 	}
 
 	producerInstance.Start()
@@ -45,10 +55,11 @@ func main() {
 		go func() {
 			defer m.Done()
 			for i := 0; i < 1000; i++ {
-				log := NewCLSLog(time.Now().Unix(), map[string]string{"content": "hello world| I'm from Beijing", "content2": fmt.Sprintf("%v", i)})
+				log := tencentcloud_cls_sdk_go.NewCLSLog(time.Now().Unix(), map[string]string{"content": "hello world| I'm from Beijing", "content2": fmt.Sprintf("%v", i)})
 				err = producerInstance.SendLog(topicId, log, callBack)
 				if err != nil {
-					t.Error(err)
+					fmt.Println(err)
+					continue
 				}
 			}
 		}()
@@ -60,14 +71,14 @@ func main() {
 type Callback struct {
 }
 
-func (callback *Callback) Success(result *Result) {
+func (callback *Callback) Success(result *tencentcloud_cls_sdk_go.Result) {
 	attemptList := result.GetReservedAttempts()
 	for _, attempt := range attemptList {
 		fmt.Printf("%+v \n", attempt)
 	}
 }
 
-func (callback *Callback) Fail(result *Result) {
+func (callback *Callback) Fail(result *tencentcloud_cls_sdk_go.Result) {
 	fmt.Println(result.IsSuccessful())
 	fmt.Println(result.GetErrorCode())
 	fmt.Println(result.GetErrorMessage())
