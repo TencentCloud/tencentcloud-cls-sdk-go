@@ -37,7 +37,9 @@ func main() {
 		t.Error(err)
 	}
 
+        // 异步发送程序，需要启动
 	producerInstance.Start()
+	
 	var m sync.WaitGroup
 	callBack := &Callback{}
 	for i := 0; i < 10; i++ {
