@@ -1,6 +1,7 @@
 package tencentcloud_cls_sdk_go
 
 import (
+	"context"
 	"math"
 	"sync"
 	asyncAtomic "sync/atomic"
@@ -32,7 +33,7 @@ func NewWorker(clsClient *CLSClient, retryQueue *LogSendRetryQueue, maxSendWorke
 
 func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 	var err *CLSError
-	err = worker.clsClient.Send(producerBatch.topicID, producerBatch.logGroup)
+	err = worker.clsClient.Send(context.Background(), producerBatch.topicID, producerBatch.logGroup)
 	if err == nil {
 		if producerBatch.attemptCount < producerBatch.maxReservedAttempts {
 			attempt := NewAttempt(true, "", "", "", GetTimeMs(time.Now().UnixNano()))
