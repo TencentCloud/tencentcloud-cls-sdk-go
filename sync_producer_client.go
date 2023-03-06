@@ -70,5 +70,9 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 
 // ResetSecretToken reset temporary secret info
 func (c *SyncProducerClient) ResetSecretToken(secretID string, secretKEY string, secretToken string) error {
-	return c.client.ResetSecretToken(secretID, secretKEY, secretToken)
+	err := c.client.ResetSecretToken(secretID, secretKEY, secretToken)
+	if err != nil {
+		return err
+	}
+	return nil
 }
