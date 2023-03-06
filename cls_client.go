@@ -2,6 +2,7 @@ package tencentcloud_cls_sdk_go
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -94,6 +95,7 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 			}).DialContext,
 			MaxIdleConns:        options.IdleConn,
 			MaxIdleConnsPerHost: options.IdleConn,
+			MaxConnsPerHost:     options.IdleConn,
 			IdleConnTimeout:     time.Duration(300) * time.Second,
 		},
 		Timeout: time.Duration(options.Timeout) * time.Millisecond,
@@ -142,7 +144,7 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 }
 
 // Send cls实际发送接口
-func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
+func (client *CLSClient) Send(ctx context.Context, topicId string, group *LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
 	authorization := signature(client.options.SecretID, client.options.SecretKEY, http.MethodPost,
@@ -175,6 +177,7 @@ func (client *CLSClient) Send(topicId string, group *LogGroup) *CLSError {
 	if client.options.SecretToken != "" {
 		req.Header.Add("X-Cls-Token", client.options.SecretToken)
 	}
+	req = req.WithContext(ctx)
 	resp, err := client.client.Do(req)
 	if err != nil {
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
