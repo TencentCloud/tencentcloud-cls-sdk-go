@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -23,12 +23,16 @@ const (
 
 type Options struct {
 	Host         string
-	SecretID     string
-	SecretKEY    string
-	SecretToken  string
 	Timeout      int
 	IdleConn     int
 	CompressType string
+	Credentials  Credentials
+}
+
+type Credentials struct {
+	SecretID    string
+	SecretKEY   string
+	SecretToken string
 }
 
 func (options *Options) withTimeoutDefault() {
@@ -48,7 +52,7 @@ func (options *Options) validateOptions() *CLSError {
 		return NewError(-1, "", MISSING_HOST, errors.New("host cannot be empty"))
 	}
 
-	if options.SecretID == "" || options.SecretKEY == "" {
+	if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
 		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
 	}
 
@@ -69,9 +73,11 @@ func (client *CLSClient) ResetSecretToken(secretID string, secretKEY string, sec
 	if secretToken == "" {
 		return NewError(-1, "", MISS_ACCESS_TOKEN, errors.New("secretToken cannot be empty"))
 	}
-	client.options.SecretToken = secretToken
-	client.options.SecretID = secretID
-	client.options.SecretKEY = secretKEY
+	client.options.Credentials = Credentials{
+		SecretID:    secretID,
+		SecretKEY:   secretKEY,
+		SecretToken: secretToken,
+	}
 	return nil
 }
 
@@ -147,7 +153,7 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
-	authorization := signature(client.options.SecretID, client.options.SecretKEY, http.MethodPost,
+	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
 		logUri, params, headers, 300)
 
 	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
@@ -176,8 +182,8 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("User-Agent", "cls-go-sdk-1.0.2")
 
-	if client.options.SecretToken != "" {
-		req.Header.Add("X-Cls-Token", client.options.SecretToken)
+	if client.options.Credentials.SecretToken != "" {
+		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
 	}
 	req = req.WithContext(ctx)
 	resp, err := client.client.Do(req)
@@ -188,7 +194,7 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	// 401, 403, 404, 413 直接返回错误
 	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
-		v, err := ioutil.ReadAll(resp.Body)
+		v, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
 		}

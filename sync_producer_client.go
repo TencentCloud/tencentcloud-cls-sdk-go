@@ -18,10 +18,12 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 	c.validateConfig(config)
 	c.config = config
 	client, err := NewCLSClient(&Options{
-		Host:         config.Endpoint,
-		SecretID:     config.AccessKeyID,
-		SecretKEY:    config.AccessKeySecret,
-		SecretToken:  config.AccessToken,
+		Host: config.Endpoint,
+		Credentials: Credentials{
+			SecretID:    config.AccessKeyID,
+			SecretKEY:   config.AccessKeySecret,
+			SecretToken: config.AccessToken,
+		},
 		Timeout:      config.Timeout,
 		IdleConn:     config.IdleConn,
 		CompressType: config.CompressType,

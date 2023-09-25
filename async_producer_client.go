@@ -27,12 +27,14 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 
 	client, err := NewCLSClient(&Options{
 		Host:         asyncProducerClientConfig.Endpoint,
-		SecretID:     asyncProducerClientConfig.AccessKeyID,
-		SecretKEY:    asyncProducerClientConfig.AccessKeySecret,
-		SecretToken:  asyncProducerClientConfig.AccessToken,
 		Timeout:      asyncProducerClientConfig.Timeout,
 		IdleConn:     asyncProducerClientConfig.IdleConn,
 		CompressType: asyncProducerClientConfig.CompressType,
+		Credentials: Credentials{
+			SecretID:    asyncProducerClientConfig.AccessKeyID,
+			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
+			SecretToken: asyncProducerClientConfig.AccessToken,
+		},
 	})
 	if err != nil {
 		return nil, errors.New(err.Message)
