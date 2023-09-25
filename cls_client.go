@@ -144,7 +144,7 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 }
 
 // Send cls实际发送接口
-func (client *CLSClient) Send(ctx context.Context, topicId string, group *LogGroup) *CLSError {
+func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
 	authorization := signature(client.options.SecretID, client.options.SecretKEY, http.MethodPost,
@@ -153,7 +153,9 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group *LogGro
 	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
 
 	var logGroupList LogGroupList
-	logGroupList.LogGroupList = append(logGroupList.LogGroupList, group)
+	for _, item := range group {
+		logGroupList.LogGroupList = append(logGroupList.LogGroupList, item)
+	}
 	body, _ := logGroupList.Marshal()
 
 	var req *http.Request
