@@ -33,7 +33,7 @@ func TestNewAsyncProducerClient(t *testing.T) {
 	producerConfig.AccessKeySecret = ""
 	producerConfig.AccessToken = ""
 	producerConfig.Retries = 10
-	producerConfig.CompressType = "zstd"
+	//producerConfig.CompressType = "zstd"
 	topicId := ""
 	producerInstance, err := NewAsyncProducerClient(producerConfig)
 	if err != nil {
