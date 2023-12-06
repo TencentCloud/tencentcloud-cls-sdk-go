@@ -180,7 +180,7 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 	req.Header.Add("Host", client.options.Host)
 	req.Header.Add("Content-Type", "application/x-protobuf")
 	req.Header.Add("Authorization", authorization)
-	req.Header.Add("User-Agent", "cls-go-sdk-1.0.2")
+	req.Header.Add("User-Agent", "cls-go-sdk-1.0.7")
 
 	if client.options.Credentials.SecretToken != "" {
 		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
