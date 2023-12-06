@@ -3,8 +3,12 @@ package tencentcloud_cls_sdk_go
 import (
 	"errors"
 	"fmt"
+	"hash/crc64"
+	"math"
 	"net"
+	"strings"
 
+	"go.uber.org/atomic"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -70,4 +74,19 @@ func GetLocalIP() (string, error) {
 		}
 	}
 	return "", errors.New("can not find local ip")
+}
+
+// GenerateProducerHash ...
+func GenerateProducerHash(instanceID string) string {
+	table := crc64.MakeTable(crc64.ECMA)
+	hash := crc64.Checksum([]byte(instanceID), table)
+	hashString := fmt.Sprintf("%016x", hash)
+	return strings.ToUpper(hashString)
+}
+
+func generatePackageId(producerHash string, batchId *atomic.Int64) string {
+	if batchId.Load() >= math.MaxInt64 {
+		batchId.Store(0)
+	}
+	return strings.ToUpper(fmt.Sprintf("%s-%016x", producerHash, batchId.Inc()))
 }

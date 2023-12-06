@@ -3,7 +3,6 @@ package tencentcloud_cls_sdk_go
 import (
 	"errors"
 	"sync"
-
 	asyncAtomic "sync/atomic"
 
 	"go.uber.org/atomic"
@@ -17,6 +16,8 @@ type Accumulator struct {
 	shutDownFlag   *atomic.Bool
 	threadPool     *SendThreadPool
 	producer       *AsyncProducerClient
+	batchID        *atomic.Int64
+	producerHash   string
 }
 
 // NewAccumulator ...
@@ -28,6 +29,8 @@ func NewAccumulator(config *AsyncProducerClientConfig, worker *Worker, threadPoo
 		shutDownFlag:   atomic.NewBool(false),
 		threadPool:     threadPool,
 		producer:       producer,
+		batchID:        atomic.NewInt64(0),
+		producerHash:   producer.producerHash,
 	}
 }
 
@@ -55,10 +58,10 @@ func (accumulator *Accumulator) addOrSendProducerBatch(topicId string, producerB
 
 func (accumulator *Accumulator) createNewProducerBatch(logType interface{}, callback CallBack, topicId string) {
 	if item, ok := logType.(*Log); ok {
-		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, item)
+		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, item, generatePackageId(accumulator.producerHash, accumulator.batchID))
 		accumulator.logTopicData[topicId] = newProducerBatch
 	} else if logList, ok := logType.([]*Log); ok {
-		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, logList)
+		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, logList, generatePackageId(accumulator.producerHash, accumulator.batchID))
 		accumulator.logTopicData[topicId] = newProducerBatch
 	}
 }

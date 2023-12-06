@@ -22,11 +22,12 @@ type ProducerBatch struct {
 	maxRetryTimes        int
 	topicID              string
 	result               *Result
+	packageID            string
 	maxReservedAttempts  int
 }
 
 // NewProducerBatch 初始化Producer batch
-func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBackFunc CallBack, logData interface{}) *ProducerBatch {
+func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBackFunc CallBack, logData interface{}, packageID string) *ProducerBatch {
 	var logs = make([]*Log, 0)
 	if log, ok := logData.(*Log); ok {
 		logs = append(logs, log)
@@ -35,8 +36,9 @@ func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBac
 	}
 
 	logGroup := &LogGroup{
-		Logs:   logs,
-		Source: proto.String(config.Source),
+		Logs:        logs,
+		Source:      proto.String(config.Source),
+		ContextFlow: proto.String(packageID),
 	}
 	currentTimeMs := GetTimeMs(time.Now().UnixNano())
 
@@ -51,6 +53,7 @@ func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBac
 		topicID:              topicID,
 		result:               NewResult(),
 		maxReservedAttempts:  config.MaxReservedAttempts,
+		packageID:            packageID,
 	}
 	producerBatch.totalDataSize = int64(producerBatch.logGroup.Size())
 	if callBackFunc != nil {

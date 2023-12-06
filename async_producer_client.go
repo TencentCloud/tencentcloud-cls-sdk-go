@@ -2,6 +2,7 @@ package tencentcloud_cls_sdk_go
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,13 +19,13 @@ type AsyncProducerClient struct {
 	sendThreadPoolWaitGroup   *sync.WaitGroup
 	producerLogGroupSize      int64
 	Client                    *CLSClient
+	producerHash              string
 }
 
 // NewAsyncProducerClient 初始化Async Producer Client
 func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig) (*AsyncProducerClient, error) {
 	asyncProducerClient := new(AsyncProducerClient)
 	asyncProducerClient.asyncProducerClientConfig = validateProducerConfig(asyncProducerClientConfig)
-
 	client, err := NewCLSClient(&Options{
 		Host:         asyncProducerClientConfig.Endpoint,
 		Timeout:      asyncProducerClientConfig.Timeout,
@@ -40,6 +41,9 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 		return nil, errors.New(err.Message)
 	}
 	asyncProducerClient.Client = client
+	ip, _ := GetLocalIP()
+	instanceID := fmt.Sprintf("%s-%d", ip, time.Now().UnixNano())
+	asyncProducerClient.producerHash = GenerateProducerHash(instanceID)
 	retryQueue := NewRetryQueue()
 	worker := NewWorker(client, retryQueue, asyncProducerClient.asyncProducerClientConfig.MaxSendWorkerCount, asyncProducerClient)
 	asyncProducerClient.threadPool = NewSendThreadPool(worker)
