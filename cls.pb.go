@@ -9,8 +9,8 @@ import (
 	"math"
 	math_bits "math/bits"
 
+	"github.com/golang/protobuf/proto"
 	github_com_golang_protobuf_proto "github.com/golang/protobuf/proto"
-	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -27,6 +27,7 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type Log struct {
 	Time                 *int64         `protobuf:"varint,1,req,name=time" json:"time,omitempty"`
 	Contents             []*Log_Content `protobuf:"bytes,2,rep,name=contents" json:"contents,omitempty"`
+	CollectTime          *int64         `protobuf:"varint,3,opt,name=collectTime" json:"collectTime,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
 	XXX_sizecache        int32          `json:"-"`
@@ -36,7 +37,7 @@ func (m *Log) Reset()         { *m = Log{} }
 func (m *Log) String() string { return proto.CompactTextString(m) }
 func (*Log) ProtoMessage()    {}
 func (*Log) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dc36d92deb5258cb, []int{0}
+	return fileDescriptor_a153da538f858886, []int{0}
 }
 func (m *Log) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -79,6 +80,13 @@ func (m *Log) GetContents() []*Log_Content {
 	return nil
 }
 
+func (m *Log) GetCollectTime() int64 {
+	if m != nil && m.CollectTime != nil {
+		return *m.CollectTime
+	}
+	return 0
+}
+
 type Log_Content struct {
 	Key                  *string  `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
 	Value                *string  `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
@@ -91,7 +99,7 @@ func (m *Log_Content) Reset()         { *m = Log_Content{} }
 func (m *Log_Content) String() string { return proto.CompactTextString(m) }
 func (*Log_Content) ProtoMessage()    {}
 func (*Log_Content) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dc36d92deb5258cb, []int{0, 0}
+	return fileDescriptor_a153da538f858886, []int{0, 0}
 }
 func (m *Log_Content) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -146,7 +154,7 @@ func (m *LogTag) Reset()         { *m = LogTag{} }
 func (m *LogTag) String() string { return proto.CompactTextString(m) }
 func (*LogTag) ProtoMessage()    {}
 func (*LogTag) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dc36d92deb5258cb, []int{1}
+	return fileDescriptor_a153da538f858886, []int{1}
 }
 func (m *LogTag) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -195,6 +203,7 @@ type LogGroup struct {
 	Filename             *string   `protobuf:"bytes,3,opt,name=filename" json:"filename,omitempty"`
 	Source               *string   `protobuf:"bytes,4,opt,name=source" json:"source,omitempty"`
 	LogTags              []*LogTag `protobuf:"bytes,5,rep,name=logTags" json:"logTags,omitempty"`
+	Hostname             *string   `protobuf:"bytes,6,opt,name=hostname" json:"hostname,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -204,7 +213,7 @@ func (m *LogGroup) Reset()         { *m = LogGroup{} }
 func (m *LogGroup) String() string { return proto.CompactTextString(m) }
 func (*LogGroup) ProtoMessage()    {}
 func (*LogGroup) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dc36d92deb5258cb, []int{2}
+	return fileDescriptor_a153da538f858886, []int{2}
 }
 func (m *LogGroup) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -268,6 +277,13 @@ func (m *LogGroup) GetLogTags() []*LogTag {
 	return nil
 }
 
+func (m *LogGroup) GetHostname() string {
+	if m != nil && m.Hostname != nil {
+		return *m.Hostname
+	}
+	return ""
+}
+
 type LogGroupList struct {
 	LogGroupList         []*LogGroup `protobuf:"bytes,1,rep,name=logGroupList" json:"logGroupList,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
@@ -279,7 +295,7 @@ func (m *LogGroupList) Reset()         { *m = LogGroupList{} }
 func (m *LogGroupList) String() string { return proto.CompactTextString(m) }
 func (*LogGroupList) ProtoMessage()    {}
 func (*LogGroupList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_dc36d92deb5258cb, []int{3}
+	return fileDescriptor_a153da538f858886, []int{3}
 }
 func (m *LogGroupList) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -316,36 +332,37 @@ func (m *LogGroupList) GetLogGroupList() []*LogGroup {
 }
 
 func init() {
-	proto.RegisterType((*Log)(nil), "cls.Log")
-	proto.RegisterType((*Log_Content)(nil), "cls.Log.Content")
-	proto.RegisterType((*LogTag)(nil), "cls.LogTag")
-	proto.RegisterType((*LogGroup)(nil), "cls.LogGroup")
-	proto.RegisterType((*LogGroupList)(nil), "cls.LogGroupList")
+	proto.RegisterType((*Log)(nil), "cls_log.Log")
+	proto.RegisterType((*Log_Content)(nil), "cls_log.Log.Content")
+	proto.RegisterType((*LogTag)(nil), "cls_log.LogTag")
+	proto.RegisterType((*LogGroup)(nil), "cls_log.LogGroup")
+	proto.RegisterType((*LogGroupList)(nil), "cls_log.LogGroupList")
 }
 
-func init() { proto.RegisterFile("cls.proto", fileDescriptor_dc36d92deb5258cb) }
+func init() { proto.RegisterFile("log.proto", fileDescriptor_a153da538f858886) }
 
-var fileDescriptor_dc36d92deb5258cb = []byte{
-	// 292 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x8e, 0xdf, 0x4a, 0xc3, 0x30,
-	0x14, 0xc6, 0x4d, 0xd3, 0x6d, 0xed, 0xe9, 0x84, 0x12, 0x64, 0x84, 0x21, 0xa5, 0x14, 0x84, 0x5e,
-	0x48, 0xd9, 0x7c, 0x03, 0x27, 0xe8, 0x4d, 0xaf, 0xc2, 0x5e, 0xa0, 0x94, 0x18, 0x8a, 0x59, 0x33,
-	0x9a, 0xd4, 0x3f, 0x37, 0x3e, 0x87, 0x2f, 0xe0, 0xbb, 0x78, 0xe9, 0x23, 0x48, 0x7d, 0x11, 0x59,
-	0xd6, 0x8e, 0x79, 0xb7, 0xbb, 0x7c, 0xdf, 0x2f, 0xe7, 0x9c, 0x1f, 0xf8, 0xa5, 0xd4, 0xd9, 0xb6,
-	0x51, 0x46, 0x11, 0x5c, 0x4a, 0x9d, 0xbc, 0x03, 0xce, 0x95, 0x20, 0x33, 0x70, 0x4d, 0xb5, 0xe1,
-	0x14, 0xc5, 0x4e, 0x8a, 0x57, 0xce, 0x02, 0x31, 0x9b, 0xc9, 0x35, 0x78, 0xa5, 0xaa, 0x0d, 0xaf,
-	0x8d, 0xa6, 0x4e, 0x8c, 0xd3, 0xe0, 0x26, 0xcc, 0x76, 0x1b, 0x72, 0x25, 0xb2, 0xbb, 0x3d, 0x60,
-	0x87, 0x1f, 0xf3, 0x25, 0x4c, 0xfa, 0x92, 0x84, 0x80, 0x9f, 0xf8, 0x9b, 0xdd, 0xe7, 0xb3, 0xdd,
-	0x93, 0x5c, 0xc0, 0xe8, 0xb9, 0x90, 0x2d, 0xa7, 0x8e, 0xed, 0xf6, 0x21, 0x59, 0xc0, 0x38, 0x57,
-	0x62, 0x5d, 0x88, 0x93, 0x27, 0x3e, 0x11, 0x78, 0xb9, 0x12, 0x0f, 0x8d, 0x6a, 0xb7, 0xe4, 0x12,
-	0x5c, 0xa9, 0x84, 0xa6, 0xc8, 0xba, 0x79, 0x83, 0x1b, 0xb3, 0x2d, 0x89, 0x21, 0xb0, 0x6e, 0xaf,
-	0xe6, 0x5e, 0xaa, 0x17, 0xea, 0xc4, 0x28, 0xf5, 0xd9, 0x71, 0x45, 0xe6, 0xe0, 0x3d, 0x56, 0x92,
-	0xd7, 0xc5, 0x86, 0x53, 0x6c, 0xf1, 0x21, 0x93, 0x19, 0x8c, 0xb5, 0x6a, 0x9b, 0x92, 0x53, 0xd7,
-	0x92, 0x3e, 0x91, 0x2b, 0x98, 0x48, 0xab, 0xac, 0xe9, 0xc8, 0x9e, 0x0d, 0x86, 0xb3, 0xeb, 0x42,
-	0xb0, 0x81, 0x25, 0xb7, 0x30, 0x1d, 0x34, 0xf3, 0x4a, 0x1b, 0xb2, 0x84, 0xa9, 0x3c, 0xca, 0xbd,
-	0xf2, 0xf9, 0x30, 0x6b, 0x01, 0xfb, 0xf7, 0x65, 0x15, 0x7e, 0x75, 0x11, 0xfa, 0xee, 0x22, 0xf4,
-	0xd3, 0x45, 0xe8, 0xe3, 0x37, 0x3a, 0xfb, 0x0b, 0x00, 0x00, 0xff, 0xff, 0x24, 0x17, 0x21, 0xf9,
-	0xbf, 0x01, 0x00, 0x00,
+var fileDescriptor_a153da538f858886 = []byte{
+	// 316 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x4f, 0xbb, 0x4e, 0xc3, 0x40,
+	0x10, 0xe4, 0xec, 0xbc, 0xbc, 0x89, 0x44, 0x58, 0x45, 0xe8, 0x94, 0xc2, 0xb2, 0x52, 0x99, 0xc6,
+	0x0a, 0x48, 0xfc, 0x00, 0x08, 0x68, 0x5c, 0x9d, 0xd2, 0x23, 0xcb, 0x3a, 0x8e, 0x88, 0xc3, 0x1b,
+	0xe5, 0x2e, 0x3c, 0xfe, 0x84, 0x92, 0xcf, 0x81, 0x8e, 0x4f, 0x40, 0xe1, 0x47, 0x50, 0xce, 0x76,
+	0x74, 0x74, 0x74, 0x3b, 0x3b, 0x3b, 0x33, 0x3b, 0x10, 0x69, 0x52, 0xd9, 0x6a, 0x4d, 0x96, 0xb0,
+	0x5f, 0x6a, 0x73, 0xab, 0x49, 0xcd, 0xde, 0x19, 0x84, 0x39, 0x29, 0x44, 0xe8, 0xd8, 0xe5, 0xa3,
+	0xe4, 0x2c, 0x09, 0xd2, 0x50, 0xb8, 0x19, 0xe7, 0x30, 0x28, 0xa9, 0xb2, 0xb2, 0xb2, 0x86, 0x07,
+	0x49, 0x98, 0x0e, 0xcf, 0x26, 0x59, 0xa3, 0xcb, 0x72, 0x52, 0xd9, 0x65, 0x4d, 0x8a, 0xfd, 0x15,
+	0x26, 0x30, 0x2c, 0x49, 0x6b, 0x59, 0xda, 0xc5, 0xce, 0x2c, 0x4c, 0x58, 0x1a, 0x0a, 0x7f, 0x35,
+	0x3d, 0x85, 0x7e, 0x23, 0xc3, 0x31, 0x84, 0x0f, 0xf2, 0xd5, 0x25, 0x46, 0x62, 0x37, 0xe2, 0x04,
+	0xba, 0x4f, 0x85, 0xde, 0x48, 0x1e, 0xb8, 0x5d, 0x0d, 0x66, 0x73, 0xe8, 0xe5, 0xa4, 0x16, 0x85,
+	0xfa, 0xb7, 0xe2, 0x93, 0xc1, 0x20, 0x27, 0x75, 0xb3, 0xa6, 0xcd, 0x0a, 0x13, 0xe8, 0x68, 0x52,
+	0x86, 0x33, 0xd7, 0x60, 0xe4, 0x37, 0x10, 0x8e, 0xa9, 0xbf, 0xae, 0xac, 0x7c, 0xb1, 0xd7, 0x9a,
+	0x9e, 0x79, 0x90, 0xb0, 0x34, 0x12, 0xfe, 0x0a, 0xa7, 0x30, 0xb8, 0x5b, 0x6a, 0x59, 0x15, 0x4d,
+	0xa9, 0x48, 0xec, 0x31, 0x1e, 0x43, 0xcf, 0xd0, 0x66, 0x5d, 0x4a, 0xde, 0x71, 0x4c, 0x83, 0xf0,
+	0x04, 0xfa, 0xda, 0xbd, 0x6d, 0x78, 0xd7, 0x45, 0x1f, 0xfa, 0xd1, 0x8b, 0x42, 0x89, 0x96, 0xdf,
+	0xd9, 0xdf, 0x93, 0xb1, 0xce, 0xbe, 0x57, 0xdb, 0xb7, 0x78, 0x76, 0x05, 0xa3, 0xb6, 0x4a, 0xbe,
+	0x34, 0x16, 0xcf, 0x61, 0xa4, 0x3d, 0xdc, 0xd4, 0x3a, 0xf2, 0xbd, 0x1d, 0x29, 0xfe, 0x9c, 0x5d,
+	0x8c, 0x3f, 0xb6, 0x31, 0xfb, 0xda, 0xc6, 0xec, 0x7b, 0x1b, 0xb3, 0xb7, 0x9f, 0xf8, 0xe0, 0x37,
+	0x00, 0x00, 0xff, 0xff, 0x31, 0xf8, 0x3c, 0xfe, 0x0e, 0x02, 0x00, 0x00,
 }
 
 func (m *Log) Marshal() (dAtA []byte, err error) {
@@ -372,6 +389,11 @@ func (m *Log) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.CollectTime != nil {
+		i = encodeVarintLog(dAtA, i, uint64(*m.CollectTime))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.Contents) > 0 {
 		for iNdEx := len(m.Contents) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -380,7 +402,7 @@ func (m *Log) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 					return 0, err
 				}
 				i -= size
-				i = encodeVarintCls(dAtA, i, uint64(size))
+				i = encodeVarintLog(dAtA, i, uint64(size))
 			}
 			i--
 			dAtA[i] = 0x12
@@ -389,7 +411,7 @@ func (m *Log) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.Time == nil {
 		return 0, new(github_com_golang_protobuf_proto.RequiredNotSetError)
 	} else {
-		i = encodeVarintCls(dAtA, i, uint64(*m.Time))
+		i = encodeVarintLog(dAtA, i, uint64(*m.Time))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -425,7 +447,7 @@ func (m *Log_Content) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	} else {
 		i -= len(*m.Value)
 		copy(dAtA[i:], *m.Value)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Value)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Value)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -434,7 +456,7 @@ func (m *Log_Content) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	} else {
 		i -= len(*m.Key)
 		copy(dAtA[i:], *m.Key)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Key)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Key)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -470,7 +492,7 @@ func (m *LogTag) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	} else {
 		i -= len(*m.Value)
 		copy(dAtA[i:], *m.Value)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Value)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Value)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -479,7 +501,7 @@ func (m *LogTag) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	} else {
 		i -= len(*m.Key)
 		copy(dAtA[i:], *m.Key)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Key)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Key)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -510,6 +532,13 @@ func (m *LogGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.Hostname != nil {
+		i -= len(*m.Hostname)
+		copy(dAtA[i:], *m.Hostname)
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Hostname)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.LogTags) > 0 {
 		for iNdEx := len(m.LogTags) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -518,7 +547,7 @@ func (m *LogGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 					return 0, err
 				}
 				i -= size
-				i = encodeVarintCls(dAtA, i, uint64(size))
+				i = encodeVarintLog(dAtA, i, uint64(size))
 			}
 			i--
 			dAtA[i] = 0x2a
@@ -527,21 +556,21 @@ func (m *LogGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.Source != nil {
 		i -= len(*m.Source)
 		copy(dAtA[i:], *m.Source)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Source)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Source)))
 		i--
 		dAtA[i] = 0x22
 	}
 	if m.Filename != nil {
 		i -= len(*m.Filename)
 		copy(dAtA[i:], *m.Filename)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.Filename)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.Filename)))
 		i--
 		dAtA[i] = 0x1a
 	}
 	if m.ContextFlow != nil {
 		i -= len(*m.ContextFlow)
 		copy(dAtA[i:], *m.ContextFlow)
-		i = encodeVarintCls(dAtA, i, uint64(len(*m.ContextFlow)))
+		i = encodeVarintLog(dAtA, i, uint64(len(*m.ContextFlow)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -553,7 +582,7 @@ func (m *LogGroup) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 					return 0, err
 				}
 				i -= size
-				i = encodeVarintCls(dAtA, i, uint64(size))
+				i = encodeVarintLog(dAtA, i, uint64(size))
 			}
 			i--
 			dAtA[i] = 0xa
@@ -594,7 +623,7 @@ func (m *LogGroupList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 					return 0, err
 				}
 				i -= size
-				i = encodeVarintCls(dAtA, i, uint64(size))
+				i = encodeVarintLog(dAtA, i, uint64(size))
 			}
 			i--
 			dAtA[i] = 0xa
@@ -603,8 +632,8 @@ func (m *LogGroupList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func encodeVarintCls(dAtA []byte, offset int, v uint64) int {
-	offset -= sovCls(v)
+func encodeVarintLog(dAtA []byte, offset int, v uint64) int {
+	offset -= sovLog(v)
 	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -621,13 +650,16 @@ func (m *Log) Size() (n int) {
 	var l int
 	_ = l
 	if m.Time != nil {
-		n += 1 + sovCls(uint64(*m.Time))
+		n += 1 + sovLog(uint64(*m.Time))
 	}
 	if len(m.Contents) > 0 {
 		for _, e := range m.Contents {
 			l = e.Size()
-			n += 1 + l + sovCls(uint64(l))
+			n += 1 + l + sovLog(uint64(l))
 		}
+	}
+	if m.CollectTime != nil {
+		n += 1 + sovLog(uint64(*m.CollectTime))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -643,11 +675,11 @@ func (m *Log_Content) Size() (n int) {
 	_ = l
 	if m.Key != nil {
 		l = len(*m.Key)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.Value != nil {
 		l = len(*m.Value)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -663,11 +695,11 @@ func (m *LogTag) Size() (n int) {
 	_ = l
 	if m.Key != nil {
 		l = len(*m.Key)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.Value != nil {
 		l = len(*m.Value)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -684,26 +716,30 @@ func (m *LogGroup) Size() (n int) {
 	if len(m.Logs) > 0 {
 		for _, e := range m.Logs {
 			l = e.Size()
-			n += 1 + l + sovCls(uint64(l))
+			n += 1 + l + sovLog(uint64(l))
 		}
 	}
 	if m.ContextFlow != nil {
 		l = len(*m.ContextFlow)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.Filename != nil {
 		l = len(*m.Filename)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.Source != nil {
 		l = len(*m.Source)
-		n += 1 + l + sovCls(uint64(l))
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if len(m.LogTags) > 0 {
 		for _, e := range m.LogTags {
 			l = e.Size()
-			n += 1 + l + sovCls(uint64(l))
+			n += 1 + l + sovLog(uint64(l))
 		}
+	}
+	if m.Hostname != nil {
+		l = len(*m.Hostname)
+		n += 1 + l + sovLog(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -720,7 +756,7 @@ func (m *LogGroupList) Size() (n int) {
 	if len(m.LogGroupList) > 0 {
 		for _, e := range m.LogGroupList {
 			l = e.Size()
-			n += 1 + l + sovCls(uint64(l))
+			n += 1 + l + sovLog(uint64(l))
 		}
 	}
 	if m.XXX_unrecognized != nil {
@@ -729,11 +765,11 @@ func (m *LogGroupList) Size() (n int) {
 	return n
 }
 
-func sovCls(x uint64) (n int) {
+func sovLog(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
-func sozCls(x uint64) (n int) {
-	return sovCls(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+func sozLog(x uint64) (n int) {
+	return sovLog(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *Log) Unmarshal(dAtA []byte) error {
 	var hasFields [1]uint64
@@ -744,7 +780,7 @@ func (m *Log) Unmarshal(dAtA []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return ErrIntOverflowCls
+				return ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
@@ -772,7 +808,7 @@ func (m *Log) Unmarshal(dAtA []byte) error {
 			var v int64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -793,7 +829,7 @@ func (m *Log) Unmarshal(dAtA []byte) error {
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -806,11 +842,11 @@ func (m *Log) Unmarshal(dAtA []byte) error {
 				}
 			}
 			if msglen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + msglen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -820,14 +856,34 @@ func (m *Log) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CollectTime", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowLog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CollectTime = &v
 		default:
 			iNdEx = preIndex
-			skippy, err := skipCls(dAtA[iNdEx:])
+			skippy, err := skipLog(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
@@ -854,7 +910,7 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return ErrIntOverflowCls
+				return ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
@@ -882,7 +938,7 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -896,11 +952,11 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -916,7 +972,7 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -930,11 +986,11 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -945,12 +1001,12 @@ func (m *Log_Content) Unmarshal(dAtA []byte) error {
 			hasFields[0] |= uint64(0x00000002)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipCls(dAtA[iNdEx:])
+			skippy, err := skipLog(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
@@ -980,7 +1036,7 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return ErrIntOverflowCls
+				return ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
@@ -1008,7 +1064,7 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1022,11 +1078,11 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1042,7 +1098,7 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1056,11 +1112,11 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1071,12 +1127,12 @@ func (m *LogTag) Unmarshal(dAtA []byte) error {
 			hasFields[0] |= uint64(0x00000002)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipCls(dAtA[iNdEx:])
+			skippy, err := skipLog(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
@@ -1105,7 +1161,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return ErrIntOverflowCls
+				return ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
@@ -1133,7 +1189,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1146,11 +1202,11 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 				}
 			}
 			if msglen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + msglen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1167,7 +1223,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1181,11 +1237,11 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1200,7 +1256,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1214,11 +1270,11 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1233,7 +1289,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1247,11 +1303,11 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			}
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + intStringLen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1266,7 +1322,7 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1279,11 +1335,11 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 				}
 			}
 			if msglen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + msglen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1293,14 +1349,47 @@ func (m *LogGroup) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowLog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthLog
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthLog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.Hostname = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipCls(dAtA[iNdEx:])
+			skippy, err := skipLog(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
@@ -1323,7 +1412,7 @@ func (m *LogGroupList) Unmarshal(dAtA []byte) error {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return ErrIntOverflowCls
+				return ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
@@ -1351,7 +1440,7 @@ func (m *LogGroupList) Unmarshal(dAtA []byte) error {
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return ErrIntOverflowCls
+					return ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
@@ -1364,11 +1453,11 @@ func (m *LogGroupList) Unmarshal(dAtA []byte) error {
 				}
 			}
 			if msglen < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			postIndex := iNdEx + msglen
 			if postIndex < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
@@ -1380,12 +1469,12 @@ func (m *LogGroupList) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipCls(dAtA[iNdEx:])
+			skippy, err := skipLog(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCls
+				return ErrInvalidLengthLog
 			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
@@ -1400,7 +1489,7 @@ func (m *LogGroupList) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func skipCls(dAtA []byte) (n int, err error) {
+func skipLog(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
 	depth := 0
@@ -1408,7 +1497,7 @@ func skipCls(dAtA []byte) (n int, err error) {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
 			if shift >= 64 {
-				return 0, ErrIntOverflowCls
+				return 0, ErrIntOverflowLog
 			}
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
@@ -1425,7 +1514,7 @@ func skipCls(dAtA []byte) (n int, err error) {
 		case 0:
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return 0, ErrIntOverflowCls
+					return 0, ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
@@ -1441,7 +1530,7 @@ func skipCls(dAtA []byte) (n int, err error) {
 			var length int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
-					return 0, ErrIntOverflowCls
+					return 0, ErrIntOverflowLog
 				}
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
@@ -1454,14 +1543,14 @@ func skipCls(dAtA []byte) (n int, err error) {
 				}
 			}
 			if length < 0 {
-				return 0, ErrInvalidLengthCls
+				return 0, ErrInvalidLengthLog
 			}
 			iNdEx += length
 		case 3:
 			depth++
 		case 4:
 			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupCls
+				return 0, ErrUnexpectedEndOfGroupLog
 			}
 			depth--
 		case 5:
@@ -1470,7 +1559,7 @@ func skipCls(dAtA []byte) (n int, err error) {
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
 		if iNdEx < 0 {
-			return 0, ErrInvalidLengthCls
+			return 0, ErrInvalidLengthLog
 		}
 		if depth == 0 {
 			return iNdEx, nil
@@ -1480,7 +1569,7 @@ func skipCls(dAtA []byte) (n int, err error) {
 }
 
 var (
-	ErrInvalidLengthCls        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowCls          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupCls = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthLog        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowLog          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupLog = fmt.Errorf("proto: unexpected end of group")
 )

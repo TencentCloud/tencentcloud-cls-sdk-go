@@ -86,6 +86,9 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 	if c.config.NeedSource {
 		logGroup.Source = &c.source
 	}
+	if len(c.config.HostName) > 0 {
+		logGroup.Hostname = &c.config.HostName
+	}
 	clsErr := c.client.Send(ctx, topicID, logGroup)
 	if clsErr != nil {
 		return clsErr

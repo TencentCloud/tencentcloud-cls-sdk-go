@@ -38,6 +38,7 @@ func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBac
 	logGroup := &LogGroup{
 		Logs:        logs,
 		Source:      proto.String(config.Source),
+		Hostname:    proto.String(config.HostName),
 		ContextFlow: proto.String(packageID),
 	}
 	currentTimeMs := GetTimeMs(time.Now().UnixNano())

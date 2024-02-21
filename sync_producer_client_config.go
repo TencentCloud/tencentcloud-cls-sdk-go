@@ -10,6 +10,7 @@ type SyncProducerClientConfig struct {
 	IdleConn        int
 	CompressType    string
 	NeedSource      bool
+	HostName        string
 }
 
 // GetDefaultSyncProducerClientConfig get default sync producer config
