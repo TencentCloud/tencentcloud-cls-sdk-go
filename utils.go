@@ -88,5 +88,5 @@ func generatePackageId(producerHash string, batchId *atomic.Int64) string {
 	if batchId.Load() >= math.MaxInt64 {
 		batchId.Store(0)
 	}
-	return strings.ToUpper(fmt.Sprintf("%s-%016x", producerHash, batchId.Inc()))
+	return strings.ToUpper(fmt.Sprintf("%s-%x", producerHash, batchId.Inc()))
 }
