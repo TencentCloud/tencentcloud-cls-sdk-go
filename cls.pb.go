@@ -339,7 +339,7 @@ func init() {
 	proto.RegisterType((*LogGroupList)(nil), "cls_log.LogGroupList")
 }
 
-func init() { proto.RegisterFile("log.proto", fileDescriptor_a153da538f858886) }
+func init() { proto.RegisterFile("cls_log.proto", fileDescriptor_a153da538f858886) }
 
 var fileDescriptor_a153da538f858886 = []byte{
 	// 316 bytes of a gzipped FileDescriptorProto
