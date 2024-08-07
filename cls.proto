@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package cls;
+package tencentcloud_cls_sdk_go;
 
 message Log
 {
