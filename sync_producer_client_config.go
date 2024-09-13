@@ -6,6 +6,7 @@ type SyncProducerClientConfig struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	AccessToken     string
+	Cred            Credential
 	Timeout         int
 	IdleConn        int
 	CompressType    string
