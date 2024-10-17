@@ -26,17 +26,21 @@ type AsyncProducerClient struct {
 func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig) (*AsyncProducerClient, error) {
 	asyncProducerClient := new(AsyncProducerClient)
 	asyncProducerClient.asyncProducerClientConfig = validateProducerConfig(asyncProducerClientConfig)
-	client, err := NewCLSClient(&Options{
+	options := &Options{
 		Host:         asyncProducerClientConfig.Endpoint,
 		Timeout:      asyncProducerClientConfig.Timeout,
 		IdleConn:     asyncProducerClientConfig.IdleConn,
 		CompressType: asyncProducerClientConfig.CompressType,
-		Credentials: Credentials{
+		Cred: &DefaultCredential{
 			SecretID:    asyncProducerClientConfig.AccessKeyID,
 			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
 			SecretToken: asyncProducerClientConfig.AccessToken,
 		},
-	})
+	}
+	if asyncProducerClientConfig.Cred != nil {
+		options.Cred = asyncProducerClientConfig.Cred
+	}
+	client, err := NewCLSClient(options)
 	if err != nil {
 		return nil, errors.New(err.Message)
 	}
