@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 )
 
 func TestSyncProduce(t *testing.T) {
 	config := GetDefaultSyncProducerClientConfig()
 	config.Endpoint = "ap-guangzhou.cls.tencentcs.com"
-	config.AccessKeyID = ""
-	config.AccessKeySecret = ""
-	config.AccessToken = ""
+	config.Credential = common.NewCredential("", "")
+
 	config.CompressType = "zstd"
 	topicID := ""
 	client, err := NewSyncProducerClient(config)

@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 )
 
 type Callback struct {
@@ -29,9 +31,9 @@ func (callback *Callback) Fail(result *Result) {
 func TestNewAsyncProducerClient(t *testing.T) {
 	producerConfig := GetDefaultAsyncProducerClientConfig()
 	producerConfig.Endpoint = "ap-guangzhou-open.cls.tencentcs.com"
-	producerConfig.AccessKeyID = ""
-	producerConfig.AccessKeySecret = ""
-	producerConfig.AccessToken = ""
+
+	producerConfig.Credential = common.NewCredential("", "")
+
 	producerConfig.Retries = 10
 	//producerConfig.CompressType = "zstd"
 	topicId := ""
