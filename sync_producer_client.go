@@ -18,12 +18,8 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 	c.validateConfig(config)
 	c.config = config
 	client, err := NewCLSClient(&Options{
-		Host: config.Endpoint,
-		Credentials: Credentials{
-			SecretID:    config.AccessKeyID,
-			SecretKEY:   config.AccessKeySecret,
-			SecretToken: config.AccessToken,
-		},
+		Host:         config.Endpoint,
+		Credentials:  config.Credential,
 		Timeout:      config.Timeout,
 		IdleConn:     config.IdleConn,
 		CompressType: config.CompressType,
@@ -92,15 +88,6 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 	clsErr := c.client.Send(ctx, topicID, logGroup)
 	if clsErr != nil {
 		return clsErr
-	}
-	return nil
-}
-
-// ResetSecretToken reset temporary secret info
-func (c *SyncProducerClient) ResetSecretToken(secretID string, secretKEY string, secretToken string) error {
-	err := c.client.ResetSecretToken(secretID, secretKEY, secretToken)
-	if err != nil {
-		return err
 	}
 	return nil
 }

@@ -338,7 +338,7 @@ func init() {
 	proto.RegisterType((*LogGroupList)(nil), "tencentcloud_cls_sdk_go.LogGroupList")
 }
 
-func init() { proto.RegisterFile("cls.proto", fileDescriptor_dc36d92deb5258cb) }
+func init() { proto.RegisterFile("cls_log.proto", fileDescriptor_dc36d92deb5258cb) }
 
 var fileDescriptor_dc36d92deb5258cb = []byte{
 	// 342 bytes of a gzipped FileDescriptorProto

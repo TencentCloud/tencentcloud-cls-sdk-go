@@ -1,5 +1,9 @@
 package tencentcloud_cls_sdk_go
 
+import (
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
+)
+
 // AsyncProducerClientConfig Producer Config
 type AsyncProducerClientConfig struct {
 	TotalSizeLnBytes    int64
@@ -13,14 +17,12 @@ type AsyncProducerClientConfig struct {
 	BaseRetryBackoffMs  int64
 	MaxRetryBackoffMs   int64
 	Endpoint            string
-	AccessKeyID         string
-	AccessKeySecret     string
-	AccessToken         string
 	Source              string
 	Timeout             int
 	IdleConn            int
 	CompressType        string
 	HostName            string
+	Credential          common.CredentialIface
 }
 
 // GetDefaultAsyncProducerClientConfig 获取默认的Producer Config

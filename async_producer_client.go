@@ -31,11 +31,7 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 		Timeout:      asyncProducerClientConfig.Timeout,
 		IdleConn:     asyncProducerClientConfig.IdleConn,
 		CompressType: asyncProducerClientConfig.CompressType,
-		Credentials: Credentials{
-			SecretID:    asyncProducerClientConfig.AccessKeyID,
-			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
-			SecretToken: asyncProducerClientConfig.AccessToken,
-		},
+		Credentials:  asyncProducerClientConfig.Credential,
 	})
 	if err != nil {
 		return nil, errors.New(err.Message)

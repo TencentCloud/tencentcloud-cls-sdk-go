@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pierrec/lz4"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 )
 
 const (
@@ -26,13 +27,7 @@ type Options struct {
 	Timeout      int
 	IdleConn     int
 	CompressType string
-	Credentials  Credentials
-}
-
-type Credentials struct {
-	SecretID    string
-	SecretKEY   string
-	SecretToken string
+	Credentials  common.CredentialIface
 }
 
 func (options *Options) withTimeoutDefault() {
@@ -52,32 +47,10 @@ func (options *Options) validateOptions() *CLSError {
 		return NewError(-1, "", MISSING_HOST, errors.New("host cannot be empty"))
 	}
 
-	if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
-		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
-	}
-
 	if options.CompressType == "" {
 		options.CompressType = "lz4"
 	}
 
-	return nil
-}
-
-func (client *CLSClient) ResetSecretToken(secretID string, secretKEY string, secretToken string) *CLSError {
-	if secretID == "" {
-		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("secretID cannot be empty"))
-	}
-	if secretKEY == "" {
-		return NewError(-1, "", MISS_ACCESS_SECRET, errors.New("secretKEY cannot be empty"))
-	}
-	if secretToken == "" {
-		return NewError(-1, "", MISS_ACCESS_TOKEN, errors.New("secretToken cannot be empty"))
-	}
-	client.options.Credentials = Credentials{
-		SecretID:    secretID,
-		SecretKEY:   secretKEY,
-		SecretToken: secretToken,
-	}
 	return nil
 }
 
@@ -153,7 +126,7 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
-	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
+	authorization := signature(client.options.Credentials.GetSecretId(), client.options.Credentials.GetSecretKey(), http.MethodPost,
 		logUri, params, headers, 300)
 
 	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
@@ -182,8 +155,8 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("User-Agent", getUserAgent())
 
-	if client.options.Credentials.SecretToken != "" {
-		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
+	if client.options.Credentials.GetToken() != "" {
+		req.Header.Add("X-Cls-Token", client.options.Credentials.GetToken())
 	}
 	req = req.WithContext(ctx)
 	resp, err := client.client.Do(req)
