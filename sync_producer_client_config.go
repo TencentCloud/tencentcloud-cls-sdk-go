@@ -3,6 +3,8 @@ package tencentcloud_cls_sdk_go
 // SyncProducerClientConfig sync producer config
 type SyncProducerClientConfig struct {
 	Endpoint        string
+	Region          string
+	NetworkType     string
 	AccessKeyID     string
 	AccessKeySecret string
 	AccessToken     string
