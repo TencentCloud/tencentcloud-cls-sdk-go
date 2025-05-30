@@ -13,6 +13,8 @@ type AsyncProducerClientConfig struct {
 	BaseRetryBackoffMs  int64
 	MaxRetryBackoffMs   int64
 	Endpoint            string
+	Region              string
+	NetworkType         string
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string
