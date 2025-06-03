@@ -20,8 +20,8 @@ const (
 	Seoul         Region = "ap-seoul"
 	Jakarta       Region = "ap-jakarta"
 	Saopaulo      Region = "sa-saopaulo"
-	Shenzhenfsi   Region = "ap-shenzhen-fsi"
-	Shanghaifsi   Region = "ap-shanghai-fsi"
-	Beijingfsi    Region = "ap-beijing-fsi"
-	Shanghaiadc   Region = "ap-shanghai-adc"
+	ShenzhenFSI   Region = "ap-shenzhen-fsi"
+	ShanghaiFSI   Region = "ap-shanghai-fsi"
+	BeijingFSI    Region = "ap-beijing-fsi"
+	ShanghaiADC   Region = "ap-shanghai-adc"
 )

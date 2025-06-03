@@ -15,8 +15,8 @@ type AsyncProducerClientConfig struct {
 	BaseRetryBackoffMs  int64
 	MaxRetryBackoffMs   int64
 	Endpoint            string
-	Region              consts.Region
-	NetworkType         consts.NetworkType
+	Region              consts.Region      // 地域
+	NetworkType         consts.NetworkType // 网络类型
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string
