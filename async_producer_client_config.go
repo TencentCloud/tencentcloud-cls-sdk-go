@@ -1,5 +1,7 @@
 package tencentcloud_cls_sdk_go
 
+import "github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/consts"
+
 // AsyncProducerClientConfig Producer Config
 type AsyncProducerClientConfig struct {
 	TotalSizeLnBytes    int64
@@ -13,8 +15,8 @@ type AsyncProducerClientConfig struct {
 	BaseRetryBackoffMs  int64
 	MaxRetryBackoffMs   int64
 	Endpoint            string
-	Region              string
-	NetworkType         string
+	Region              consts.Region
+	NetworkType         consts.NetworkType
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string

@@ -1,10 +1,12 @@
 package tencentcloud_cls_sdk_go
 
+import "github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/consts"
+
 // SyncProducerClientConfig sync producer config
 type SyncProducerClientConfig struct {
 	Endpoint        string
-	Region          string
-	NetworkType     string
+	Region          consts.Region
+	NetworkType     consts.NetworkType
 	AccessKeyID     string
 	AccessKeySecret string
 	AccessToken     string

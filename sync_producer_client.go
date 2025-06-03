@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/maps"
 )
 
 // SyncProducerClient synchronized producer client
@@ -50,8 +48,8 @@ func (c *SyncProducerClient) validateConfig(config *SyncProducerClientConfig) {
 		c.source, _ = GetLocalIP()
 	}
 	if config.Endpoint == "" {
-		endpointPrefix := maps.GetEndpointPrefixByRegion(config.Region)
-		endpointSuffix := maps.GetEndpointSuffixByNetworkType(config.NetworkType)
+		endpointPrefix := config.Region
+		endpointSuffix := config.NetworkType
 		config.Endpoint = fmt.Sprintf("%s.%s", endpointPrefix, endpointSuffix)
 	}
 }
