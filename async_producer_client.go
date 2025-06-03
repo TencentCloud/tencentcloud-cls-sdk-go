@@ -3,10 +3,11 @@ package tencentcloud_cls_sdk_go
 import (
 	"errors"
 	"fmt"
-	"github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/map"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/maps"
 )
 
 // AsyncProducerClient async producer client
@@ -92,8 +93,8 @@ func validateProducerConfig(producerConfig *AsyncProducerClientConfig) *AsyncPro
 		producerConfig.Source, _ = GetLocalIP()
 	}
 	if producerConfig.Endpoint == "" {
-		endpointPrefix := _map.GetEndpointPrefixByRegion(producerConfig.Region)
-		endpointSuffix := _map.GetEndpointSuffixByNetworkType(producerConfig.NetworkType)
+		endpointPrefix := maps.GetEndpointPrefixByRegion(producerConfig.Region)
+		endpointSuffix := maps.GetEndpointSuffixByNetworkType(producerConfig.NetworkType)
 		producerConfig.Endpoint = fmt.Sprintf("%s.%s", endpointPrefix, endpointSuffix)
 	}
 	return producerConfig

@@ -1,4 +1,4 @@
-package _map
+package maps
 
 var regionToEndpointMap = map[string]string{
 	"北京":      "ap-beijing",
@@ -23,6 +23,7 @@ var regionToEndpointMap = map[string]string{
 	"上海自动驾驶云": "ap-shanghai-adc",
 }
 
+// GetEndpointPrefixByRegion 根据地域获取域名前缀
 func GetEndpointPrefixByRegion(region string) string {
 	return regionToEndpointMap[region]
 }
