@@ -25,5 +25,8 @@ var regionToEndpointMap = map[string]string{
 
 // GetEndpointPrefixByRegion 根据地域获取域名前缀
 func GetEndpointPrefixByRegion(region string) string {
-	return regionToEndpointMap[region]
+	if prefix, ok := regionToEndpointMap[region]; ok {
+		return prefix
+	}
+	return ""
 }

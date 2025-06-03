@@ -7,5 +7,8 @@ var networkTypeToEndpointMap = map[string]string{
 
 // GetEndpointSuffixByNetworkType 根据网络类型获取域名后缀
 func GetEndpointSuffixByNetworkType(networkType string) string {
-	return networkTypeToEndpointMap[networkType]
+	if suffix, ok := networkTypeToEndpointMap[networkType]; ok {
+		return suffix
+	}
+	return ""
 }
