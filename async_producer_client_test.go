@@ -60,3 +60,38 @@ func TestNewAsyncProducerClient(t *testing.T) {
 
 	producerInstance.Close(60000)
 }
+
+func TestNewAsyncProducerClientByRegionAndNetworkType(t *testing.T) {
+	producerConfig := GetDefaultAsyncProducerClientConfig()
+	producerConfig.setEndpointByRegionAndNetworkType(Guangzhou, Intranet)
+	producerConfig.AccessKeyID = ""
+	producerConfig.AccessKeySecret = ""
+	producerConfig.AccessToken = ""
+	producerConfig.Retries = 10
+	//producerConfig.CompressType = "zstd"
+	topicId := ""
+	producerInstance, err := NewAsyncProducerClient(producerConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	producerInstance.Start()
+
+	var m sync.WaitGroup
+	callBack := &Callback{}
+	for i := 0; i < 2; i++ {
+		m.Add(1)
+		go func() {
+			defer m.Done()
+			for i := 0; i < 10; i++ {
+				log := NewCLSLog(time.Now().Unix(), map[string]string{"content": "--------", "content2": fmt.Sprintf("%v", i)})
+				err = producerInstance.SendLog(topicId, log, callBack)
+				if err != nil {
+					t.Error(err)
+				}
+			}
+		}()
+	}
+	m.Wait()
+
+	producerInstance.Close(60000)
+}

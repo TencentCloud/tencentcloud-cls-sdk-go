@@ -45,6 +45,7 @@ func GetDefaultAsyncProducerClientConfig() *AsyncProducerClientConfig {
 	}
 }
 
+// SetEndpointByRegionAndNetworkType 根据地域和网络类型设置域名
 func (config *AsyncProducerClientConfig) setEndpointByRegionAndNetworkType(region Region, networkType NetworkType) {
 	config.region = region
 	config.networkType = networkType

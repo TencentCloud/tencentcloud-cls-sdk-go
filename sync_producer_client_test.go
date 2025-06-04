@@ -31,3 +31,28 @@ func TestSyncProduce(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestSyncProduceByRegionAndNetworkType(t *testing.T) {
+	config := GetDefaultSyncProducerClientConfig()
+	config.setEndpointByRegionAndNetworkType(Shanghai, Intranet)
+	config.AccessKeyID = ""
+	config.AccessKeySecret = ""
+	config.AccessToken = ""
+	config.CompressType = "zstd"
+	topicID := ""
+	client, err := NewSyncProducerClient(config)
+	if err != nil {
+		t.Error(err)
+	}
+	logList := make([]*Log, 0)
+	for i := 0; i < 100; i++ {
+		log := NewCLSLog(time.Now().Unix(), map[string]string{"number": fmt.Sprint(i), "topic_id": topicID})
+		logList = append(logList, log)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err = client.SendLogList(ctx, topicID, logList)
+	if err != nil {
+		t.Error(err)
+	}
+}
