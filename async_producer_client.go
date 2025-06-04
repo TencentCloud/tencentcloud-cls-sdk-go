@@ -90,11 +90,6 @@ func validateProducerConfig(producerConfig *AsyncProducerClientConfig) *AsyncPro
 	if producerConfig.Source == "" {
 		producerConfig.Source, _ = GetLocalIP()
 	}
-	if producerConfig.Endpoint == "" {
-		endpointPrefix := producerConfig.Region
-		endpointSuffix := producerConfig.NetworkType
-		producerConfig.Endpoint = fmt.Sprintf("%s.%s", endpointPrefix, endpointSuffix)
-	}
 	return producerConfig
 }
 

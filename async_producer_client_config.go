@@ -1,6 +1,6 @@
 package tencentcloud_cls_sdk_go
 
-import "github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/consts"
+import "fmt"
 
 // AsyncProducerClientConfig Producer Config
 type AsyncProducerClientConfig struct {
@@ -15,8 +15,8 @@ type AsyncProducerClientConfig struct {
 	BaseRetryBackoffMs  int64
 	MaxRetryBackoffMs   int64
 	Endpoint            string
-	Region              consts.Region      // 地域
-	NetworkType         consts.NetworkType // 网络类型
+	region              Region      // 地域
+	networkType         NetworkType // 网络类型
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string
@@ -43,4 +43,10 @@ func GetDefaultAsyncProducerClientConfig() *AsyncProducerClientConfig {
 		Timeout:             10000,
 		IdleConn:            50,
 	}
+}
+
+func (config *AsyncProducerClientConfig) setEndpointByRegionAndNetworkType(region Region, networkType NetworkType) {
+	config.region = region
+	config.networkType = networkType
+	config.Endpoint = fmt.Sprintf("%s.%s", config.region, config.networkType)
 }

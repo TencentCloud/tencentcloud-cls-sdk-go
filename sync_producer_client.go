@@ -3,7 +3,6 @@ package tencentcloud_cls_sdk_go
 import (
 	"context"
 	"errors"
-	"fmt"
 )
 
 // SyncProducerClient synchronized producer client
@@ -46,11 +45,6 @@ func (c *SyncProducerClient) validateConfig(config *SyncProducerClientConfig) {
 	}
 	if config.NeedSource {
 		c.source, _ = GetLocalIP()
-	}
-	if config.Endpoint == "" {
-		endpointPrefix := config.Region
-		endpointSuffix := config.NetworkType
-		config.Endpoint = fmt.Sprintf("%s.%s", endpointPrefix, endpointSuffix)
 	}
 }
 

@@ -1,12 +1,12 @@
 package tencentcloud_cls_sdk_go
 
-import "github.com/tencentcloud/tencentcloud-cls-sdk-go/entity/consts"
+import "fmt"
 
 // SyncProducerClientConfig sync producer config
 type SyncProducerClientConfig struct {
 	Endpoint        string
-	Region          consts.Region      // 地域
-	NetworkType     consts.NetworkType // 网络类型
+	region          Region      // 地域
+	networkType     NetworkType // 网络类型
 	AccessKeyID     string
 	AccessKeySecret string
 	AccessToken     string
@@ -24,4 +24,10 @@ func GetDefaultSyncProducerClientConfig() *SyncProducerClientConfig {
 		IdleConn:   50,
 		NeedSource: true,
 	}
+}
+
+func (config *SyncProducerClientConfig) setEndpointByRegionAndNetworkType(region Region, networkType NetworkType) {
+	config.region = region
+	config.networkType = networkType
+	config.Endpoint = fmt.Sprintf("%s.%s", config.region, config.networkType)
 }
