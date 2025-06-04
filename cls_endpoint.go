@@ -1,7 +1,15 @@
-package consts
+package tencentcloud_cls_sdk_go
+
+// NetworkType 网络类型,可以将string赋值给该类型，实现自定义网络类型
+type NetworkType string
 
 // Region 地域类型,可以将string赋值给该类型，实现自定义地域
 type Region string
+
+const (
+	Intranet NetworkType = "cls.tencentyun.com" //内网
+	Extranet NetworkType = "cls.tencentcs.com"  //外网
+)
 
 const (
 	Beijing       Region = "ap-beijing"
