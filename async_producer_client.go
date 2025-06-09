@@ -27,10 +27,11 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 	asyncProducerClient := new(AsyncProducerClient)
 	asyncProducerClient.asyncProducerClientConfig = validateProducerConfig(asyncProducerClientConfig)
 	client, err := NewCLSClient(&Options{
-		Host:         asyncProducerClientConfig.Endpoint,
-		Timeout:      asyncProducerClientConfig.Timeout,
-		IdleConn:     asyncProducerClientConfig.IdleConn,
-		CompressType: asyncProducerClientConfig.CompressType,
+		Host:             asyncProducerClientConfig.Endpoint,
+		Timeout:          asyncProducerClientConfig.Timeout,
+		IdleConn:         asyncProducerClientConfig.IdleConn,
+		CompressType:     asyncProducerClientConfig.CompressType,
+		SecretCustomFunc: asyncProducerClientConfig.secretCustomFunc,
 		Credentials: Credentials{
 			SecretID:    asyncProducerClientConfig.AccessKeyID,
 			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,

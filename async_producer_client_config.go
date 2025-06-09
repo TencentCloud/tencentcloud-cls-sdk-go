@@ -21,6 +21,7 @@ type AsyncProducerClientConfig struct {
 	IdleConn            int
 	CompressType        string
 	HostName            string
+	secretCustomFunc    func(topicId string) (string, string, string, string)
 }
 
 // GetDefaultAsyncProducerClientConfig 获取默认的Producer Config
