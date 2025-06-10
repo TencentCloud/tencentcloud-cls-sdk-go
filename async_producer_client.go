@@ -31,7 +31,7 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 		Timeout:          asyncProducerClientConfig.Timeout,
 		IdleConn:         asyncProducerClientConfig.IdleConn,
 		CompressType:     asyncProducerClientConfig.CompressType,
-		SecretCustomFunc: asyncProducerClientConfig.secretCustomFunc,
+		SecretCustomFunc: asyncProducerClientConfig.SecretCustomFunc,
 		Credentials: Credentials{
 			SecretID:    asyncProducerClientConfig.AccessKeyID,
 			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
