@@ -107,6 +107,7 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 		},
 		Timeout: time.Duration(options.Timeout) * time.Millisecond,
 	}
+	client.secretCustomFunc = options.SecretCustomFunc
 	return client, nil
 }
 
