@@ -159,6 +159,13 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 	if client.secretCustomFunc != nil {
 		topic, secretId, secretKey, token = client.secretCustomFunc(topic)
 	}
+
+	if topic == "" || secretId == "" || secretKey == "" {
+		return NewError(-1, "", BAD_REQUEST,
+			fmt.Errorf("invalid secretinfo. topic: %s, secretId: %s, secretKey: %s", topic, secretId, secretKey),
+		)
+	}
+
 	params := url.Values{"topic_id": []string{topic}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
 	authorization := signature(secretId, secretKey, http.MethodPost, logUri, params, headers, 300)
