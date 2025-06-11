@@ -34,7 +34,7 @@ func TestSyncProduce(t *testing.T) {
 
 func TestSyncProduceByRegionAndNetworkType(t *testing.T) {
 	config := GetDefaultSyncProducerClientConfig()
-	config.setEndpointByRegionAndNetworkType(Shanghai, Intranet)
+	config.SetEndpointByRegionAndNetworkType(Shanghai, Intranet)
 	config.AccessKeyID = ""
 	config.AccessKeySecret = ""
 	config.AccessToken = ""

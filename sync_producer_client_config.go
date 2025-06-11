@@ -27,7 +27,7 @@ func GetDefaultSyncProducerClientConfig() *SyncProducerClientConfig {
 }
 
 // SetEndpointByRegionAndNetworkType 根据地域和网络类型设置域名
-func (config *SyncProducerClientConfig) setEndpointByRegionAndNetworkType(region Region, networkType NetworkType) {
+func (config *SyncProducerClientConfig) SetEndpointByRegionAndNetworkType(region Region, networkType NetworkType) {
 	config.region = region
 	config.networkType = networkType
 	config.Endpoint = fmt.Sprintf("%s.%s", config.region, config.networkType)

@@ -63,7 +63,7 @@ func TestNewAsyncProducerClient(t *testing.T) {
 
 func TestNewAsyncProducerClientByRegionAndNetworkType(t *testing.T) {
 	producerConfig := GetDefaultAsyncProducerClientConfig()
-	producerConfig.setEndpointByRegionAndNetworkType(Guangzhou, Intranet)
+	producerConfig.SetEndpointByRegionAndNetworkType(Guangzhou, Intranet)
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
 	producerConfig.AccessToken = ""
