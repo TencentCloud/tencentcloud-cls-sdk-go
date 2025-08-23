@@ -88,6 +88,9 @@ func (accumulator *Accumulator) addLogToProducerBatch(topicId string, logData in
 			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, int64(logSize))
 			accumulator.addOrSendProducerBatch(topicId, producerBatch, mlog, callback)
 		} else {
+			if _, err := GetLogSizeCalculate(mlog); err != nil {
+				return err
+			}
 			accumulator.createNewProducerBatch(mlog, callback, topicId)
 		}
 	} else if logList, ok := logData.([]*Log); ok {
@@ -100,6 +103,9 @@ func (accumulator *Accumulator) addLogToProducerBatch(topicId string, logData in
 			asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, int64(logListSize))
 			accumulator.addOrSendProducerBatch(topicId, producerBatch, logList, callback)
 		} else {
+			if _, err := GetLogSizeCalculate(mlog); err != nil {
+				return err
+			}
 			accumulator.createNewProducerBatch(logList, callback, topicId)
 		}
 	} else {
