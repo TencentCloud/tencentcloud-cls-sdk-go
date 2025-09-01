@@ -149,6 +149,21 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 	return req, nil
 }
 
+func (client *CLSClient) deflateCompress(body []byte, params url.Values, urlReport string) (*http.Request, *CLSError) {
+	data, err := DeflateCompress(body)
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+	req.URL.RawQuery = params.Encode()
+	req.Header.Add("x-cls-compress-type", "deflate")
+	return req, nil
+}
+
 // Send cls实际发送接口
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
@@ -169,6 +184,10 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	if client.options.CompressType == "zstd" {
 		if req, clsErr = client.zstdCompress(body, params, urlReport); clsErr != nil {
+			return clsErr
+		}
+	} else if client.options.CompressType == "deflate" {
+		if req, clsErr = client.deflateCompress(body, params, urlReport); clsErr != nil {
 			return clsErr
 		}
 	} else {
