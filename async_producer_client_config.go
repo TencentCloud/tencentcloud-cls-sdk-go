@@ -20,6 +20,7 @@ type AsyncProducerClientConfig struct {
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string
+	Cred                Credential
 	Source              string
 	Timeout             int
 	IdleConn            int
