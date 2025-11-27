@@ -52,9 +52,9 @@ func (options *Options) validateOptions() *CLSError {
 		return NewError(-1, "", MISSING_HOST, errors.New("host cannot be empty"))
 	}
 
-	if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
-		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
-	}
+	//if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
+	//	return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
+	//}
 
 	if options.CompressType == "" {
 		options.CompressType = "lz4"
@@ -168,6 +168,7 @@ func (client *CLSClient) deflateCompress(body []byte, params url.Values, urlRepo
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
+
 	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
 		logUri, params, headers, 300)
 
@@ -198,9 +199,10 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	req.Header.Add("Host", client.options.Host)
 	req.Header.Add("Content-Type", "application/x-protobuf")
-	req.Header.Add("Authorization", authorization)
+	if client.options.Credentials.SecretID != "" && client.options.Credentials.SecretKEY != "" {
+		req.Header.Add("Authorization", authorization)
+	}
 	req.Header.Add("User-Agent", getUserAgent())
-
 	if client.options.Credentials.SecretToken != "" {
 		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
 	}
@@ -210,9 +212,8 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
 	}
 	defer resp.Body.Close()
-
-	// 401, 403, 404, 413 直接返回错误
-	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
+	// 400, 401, 403, 404, 413 直接返回错误
+	if resp.StatusCode == 400 || resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
 		v, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
