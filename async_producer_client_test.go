@@ -28,7 +28,7 @@ func (callback *Callback) Fail(result *Result) {
 
 func TestNewAsyncProducerClient(t *testing.T) {
 	producerConfig := GetDefaultAsyncProducerClientConfig()
-	producerConfig.Endpoint = "ap-guangzhou-open.cls.tencentcs.com"
+	producerConfig.Endpoint = "https://ap-guangzhou-open.cls.tencentcs.com"
 	producerConfig.AccessKeyID = ""
 	producerConfig.AccessKeySecret = ""
 	producerConfig.AccessToken = ""

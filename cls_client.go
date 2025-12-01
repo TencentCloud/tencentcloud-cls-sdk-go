@@ -3,6 +3,7 @@ package tencentcloud_cls_sdk_go
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/pierrec/lz4"
@@ -23,6 +25,7 @@ const (
 
 type Options struct {
 	Host         string
+	Scheme       string
 	Timeout      int
 	IdleConn     int
 	CompressType string
@@ -91,20 +94,36 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 	if err := options.validateOptions(); err != nil {
 		return nil, err
 	}
+	// 确保Host包含正确的协议头
+	if strings.HasPrefix(options.Host, "http://") {
+		options.Scheme = "http"
+		options.Host = strings.TrimPrefix(options.Host, "http://")
+	} else if strings.HasPrefix(options.Host, "https://") {
+		options.Scheme = "https"
+		options.Host = strings.TrimPrefix(options.Host, "https://")
+	} else {
+		options.Scheme = "http"
+	}
 	client.options = options
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   time.Duration(options.Timeout) * time.Millisecond,
+			KeepAlive: 300 * time.Second,
+		}).DialContext,
+		MaxIdleConns:        options.IdleConn,
+		MaxIdleConnsPerHost: options.IdleConn,
+		MaxConnsPerHost:     options.IdleConn,
+		IdleConnTimeout:     time.Duration(300) * time.Second,
+	}
+	if options.Scheme == "https" {
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
 	client.client = &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   time.Duration(options.Timeout) * time.Millisecond,
-				KeepAlive: 300 * time.Second,
-			}).DialContext,
-			MaxIdleConns:        options.IdleConn,
-			MaxIdleConnsPerHost: options.IdleConn,
-			MaxConnsPerHost:     options.IdleConn,
-			IdleConnTimeout:     time.Duration(300) * time.Second,
-		},
-		Timeout: time.Duration(options.Timeout) * time.Millisecond,
+		Transport: transport,
+		Timeout:   time.Duration(options.Timeout) * time.Millisecond,
 	}
 	return client, nil
 }
@@ -171,9 +190,8 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
 		logUri, params, headers, 300)
-
-	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
-
+	
+	urlReport := fmt.Sprintf("%s://%s/structuredlog", client.options.Scheme, client.options.Host)
 	var logGroupList LogGroupList
 	for _, item := range group {
 		logGroupList.LogGroupList = append(logGroupList.LogGroupList, item)
