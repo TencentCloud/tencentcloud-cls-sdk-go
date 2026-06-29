@@ -91,19 +91,9 @@ func main() {
 	log.Println("Consumer running successfully")
 	log.Println("Press Ctrl+C to stop the consumer...")
 
-	// periodically print statistics
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
 		for {
 			select {
-			case <-ticker.C:
-				stats := worker1.GetStats()
-				log.Printf("=== Consumer Statistics ===")
-				log.Printf("Total partitions: %d", stats["total_partitions"])
-				log.Printf("Active partitions: %d", stats["active_partitions"])
-				log.Printf("Total logs consumed: %d", stats["total_logs_consumed"])
-				log.Printf("Total log groups consumed: %d", stats["total_log_groups_consumed"])
 			case <-ctx.Done():
 				return
 			}
@@ -126,14 +116,6 @@ func main() {
 	// wait for consumer to completely stop
 	log.Println("Waiting for consumer to shutdown...")
 	time.Sleep(5 * time.Second)
-
-	// get final statistics
-	finalStats := worker1.GetStats()
-	log.Printf("=== Final Statistics ===")
-	log.Printf("Total partitions: %d", finalStats["total_partitions"])
-	log.Printf("Active partitions: %d", finalStats["active_partitions"])
-	log.Printf("Total logs consumed: %d", finalStats["total_logs_consumed"])
-	log.Printf("Total log groups consumed: %d", finalStats["total_log_groups_consumed"])
 
 	log.Println("Consumer shutdown completed")
 }
