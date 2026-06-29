@@ -9,9 +9,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
 	"github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"github.com/tencentcloud/tencentcloud-cls-sdk-go/consumer"
-	"time"
 )
 
 // SampleProcessor example processor

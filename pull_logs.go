@@ -2,16 +2,16 @@ package tencentcloud_cls_sdk_go
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/snappy"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"encoding/base64"
-	"github.com/golang/snappy"
 )
 
-// PullLogsClient implements log pulling functionality 
+// PullLogsClient implements log pulling functionality
 
 type PullLogsClient struct {
 	Endpoint  string
@@ -53,7 +53,7 @@ func (c *PullLogsClient) PullLogs(topicId string, partitionId int, size int, sta
 		Size:         size,
 		CompressType: "snappy",
 		PartitionId:  partitionId,
-		StartTime:    startTimeValue, 
+		StartTime:    startTimeValue,
 		EndTime:      endTime,
 	}
 	bodyBytes, err := json.Marshal(pullReq)

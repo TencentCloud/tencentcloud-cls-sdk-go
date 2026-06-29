@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"time"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 // HeartbeatWorker heartbeat worker
@@ -14,12 +15,12 @@ import (
 type HeartbeatWorker struct {
 	ConsumerClient           *ConsumerClient
 	ConsumerOption           *ConsumerOption
-	HeldPartitions           []tencentcloud_cls_sdk_go.PartitionInfo
-	HeartPartitions          []tencentcloud_cls_sdk_go.PartitionInfo
+	HeldPartitions           []cls.PartitionInfo
+	HeartPartitions          []cls.PartitionInfo
 	isShutdown               int32 // 0=running, 1=shutdown
 	ShutdownLock             sync.Mutex
 	LastHeartbeatSuccessTime int64
-	Logger                   tencentcloud_cls_sdk_go.Logger
+	Logger                   cls.Logger
 	lock                     sync.RWMutex  // add read-write lock to protect partition data
 	stopChan                 chan struct{} // add stop signal channel
 	stoppedChan              chan struct{} // add stopped signal channel
@@ -30,16 +31,16 @@ type HeartbeatWorker struct {
 // NewHeartbeatWorker create heartbeat worker
 func NewHeartbeatWorker(consumerClient *ConsumerClient, consumerOption *ConsumerOption) *HeartbeatWorker {
 	// initialize empty partition list
-	heldPartitions := make([]tencentcloud_cls_sdk_go.PartitionInfo, 0)
-	heartPartitions := make([]tencentcloud_cls_sdk_go.PartitionInfo, 0)
+	heldPartitions := make([]cls.PartitionInfo, 0)
+	heartPartitions := make([]cls.PartitionInfo, 0)
 
 	// create empty partition list for each topic
 	for _, topicID := range consumerOption.TopicIDs {
-		heldPartitions = append(heldPartitions, tencentcloud_cls_sdk_go.PartitionInfo{
+		heldPartitions = append(heldPartitions, cls.PartitionInfo{
 			TopicID:    topicID,
 			Partitions: []int{},
 		})
-		heartPartitions = append(heartPartitions, tencentcloud_cls_sdk_go.PartitionInfo{
+		heartPartitions = append(heartPartitions, cls.PartitionInfo{
 			TopicID:    topicID,
 			Partitions: []int{},
 		})
@@ -52,7 +53,7 @@ func NewHeartbeatWorker(consumerClient *ConsumerClient, consumerOption *Consumer
 		HeartPartitions:          heartPartitions,
 		isShutdown:               0,
 		LastHeartbeatSuccessTime: time.Now().Unix(),
-		Logger:                   tencentcloud_cls_sdk_go.GetZapLoggerAdapter(),
+		Logger:                   cls.GetZapLoggerAdapter(),
 		stopChan:                 make(chan struct{}),
 		stoppedChan:              make(chan struct{}),
 	}
@@ -108,8 +109,8 @@ func (hw *HeartbeatWorker) run() {
 			}
 
 			hw.Logger.Info("Heartbeat successful",
-				tencentcloud_cls_sdk_go.Field{Key: "total_topics", Value: len(heldPartitions)},
-				tencentcloud_cls_sdk_go.Field{Key: "total_partitions", Value: totalPartitions},
+				cls.Field{Key: "total_topics", Value: len(heldPartitions)},
+				cls.Field{Key: "total_partitions", Value: totalPartitions},
 			)
 		} else {
 			hw.Logger.Info("Heartbeat failed, retrying...")
@@ -139,7 +140,7 @@ func (hw *HeartbeatWorker) sendHeartbeat() bool {
 
 	// send heartbeat WITHOUT holding the lock to avoid blocking readers
 	// (e.g. GetHeldPartitions in the main consumption loop) during network IO.
-	var responsePartitions []tencentcloud_cls_sdk_go.PartitionInfo
+	var responsePartitions []cls.PartitionInfo
 	success := hw.ConsumerClient.Heartbeat(partitions, &responsePartitions)
 
 	// update shared partition state under the write lock.
@@ -153,8 +154,8 @@ func (hw *HeartbeatWorker) sendHeartbeat() bool {
 			removeSet := hw.subPartitions(hw.HeartPartitions, responsePartitions)
 			if len(addSet) > 0 || len(removeSet) > 0 {
 				hw.Logger.Info("Partition reorganize",
-					tencentcloud_cls_sdk_go.Field{Key: "adding", Value: addSet},
-					tencentcloud_cls_sdk_go.Field{Key: "removing", Value: removeSet},
+					cls.Field{Key: "adding", Value: addSet},
+					cls.Field{Key: "removing", Value: removeSet},
 				)
 			}
 		}
@@ -183,7 +184,7 @@ func (hw *HeartbeatWorker) sendHeartbeat() bool {
 }
 
 // buildHeartbeatPartitions build heartbeat request partition information
-func (hw *HeartbeatWorker) buildHeartbeatPartitions() []tencentcloud_cls_sdk_go.PartitionInfo {
+func (hw *HeartbeatWorker) buildHeartbeatPartitions() []cls.PartitionInfo {
 	// if there are held partitions, use held partitions
 	if len(hw.HeldPartitions) > 0 {
 		return hw.copyPartitions(hw.HeldPartitions)
@@ -191,10 +192,10 @@ func (hw *HeartbeatWorker) buildHeartbeatPartitions() []tencentcloud_cls_sdk_go.
 
 	// otherwise, send empty partition list for each topic
 	// backend will perform rebalance allocation based on load balancing strategy
-	partitions := make([]tencentcloud_cls_sdk_go.PartitionInfo, 0)
+	partitions := make([]cls.PartitionInfo, 0)
 
 	for _, topicID := range hw.ConsumerOption.TopicIDs {
-		partitionInfo := tencentcloud_cls_sdk_go.PartitionInfo{
+		partitionInfo := cls.PartitionInfo{
 			TopicID:    topicID,
 			Partitions: []int{}, // empty partition list, let backend allocate
 		}
@@ -205,7 +206,7 @@ func (hw *HeartbeatWorker) buildHeartbeatPartitions() []tencentcloud_cls_sdk_go.
 }
 
 // equalPartitions compare two partition information
-func (hw *HeartbeatWorker) equalPartitions(p1, p2 []tencentcloud_cls_sdk_go.PartitionInfo) bool {
+func (hw *HeartbeatWorker) equalPartitions(p1, p2 []cls.PartitionInfo) bool {
 	if len(p1) != len(p2) {
 		return false
 	}
@@ -227,7 +228,7 @@ func (hw *HeartbeatWorker) equalPartitions(p1, p2 []tencentcloud_cls_sdk_go.Part
 }
 
 // subPartitions calculate partition difference set
-func (hw *HeartbeatWorker) subPartitions(p1, p2 []tencentcloud_cls_sdk_go.PartitionInfo) []string {
+func (hw *HeartbeatWorker) subPartitions(p1, p2 []cls.PartitionInfo) []string {
 	result := make([]string, 0)
 	sameTopics := make(map[string]bool)
 
@@ -272,8 +273,8 @@ func (hw *HeartbeatWorker) subPartitionIDs(ids1, ids2 []int) []int {
 }
 
 // addPartitions merge partition information
-func (hw *HeartbeatWorker) addPartitions(p1, p2 []tencentcloud_cls_sdk_go.PartitionInfo) []tencentcloud_cls_sdk_go.PartitionInfo {
-	result := make([]tencentcloud_cls_sdk_go.PartitionInfo, 0)
+func (hw *HeartbeatWorker) addPartitions(p1, p2 []cls.PartitionInfo) []cls.PartitionInfo {
+	result := make([]cls.PartitionInfo, 0)
 	sameTopics := make(map[string]bool)
 
 	// handle partition merge for same topic
@@ -282,7 +283,7 @@ func (hw *HeartbeatWorker) addPartitions(p1, p2 []tencentcloud_cls_sdk_go.Partit
 			if pA.TopicID == pB.TopicID {
 				// merge partition IDs, remove duplicates
 				mergedPartitions := hw.mergePartitionIDs(pA.Partitions, pB.Partitions)
-				result = append(result, tencentcloud_cls_sdk_go.PartitionInfo{
+				result = append(result, cls.PartitionInfo{
 					TopicID:    pA.TopicID,
 					Partitions: mergedPartitions,
 				})
@@ -329,10 +330,10 @@ func (hw *HeartbeatWorker) mergePartitionIDs(ids1, ids2 []int) []int {
 }
 
 // copyPartitions deep copy partition information
-func (hw *HeartbeatWorker) copyPartitions(partitions []tencentcloud_cls_sdk_go.PartitionInfo) []tencentcloud_cls_sdk_go.PartitionInfo {
-	result := make([]tencentcloud_cls_sdk_go.PartitionInfo, len(partitions))
+func (hw *HeartbeatWorker) copyPartitions(partitions []cls.PartitionInfo) []cls.PartitionInfo {
+	result := make([]cls.PartitionInfo, len(partitions))
 	for i, partition := range partitions {
-		result[i] = tencentcloud_cls_sdk_go.PartitionInfo{
+		result[i] = cls.PartitionInfo{
 			TopicID:    partition.TopicID,
 			Partitions: append([]int{}, partition.Partitions...),
 		}
@@ -340,10 +341,10 @@ func (hw *HeartbeatWorker) copyPartitions(partitions []tencentcloud_cls_sdk_go.P
 	return result
 }
 
-func (hw *HeartbeatWorker) emptyPartitions() []tencentcloud_cls_sdk_go.PartitionInfo {
-	result := make([]tencentcloud_cls_sdk_go.PartitionInfo, 0, len(hw.ConsumerOption.TopicIDs))
+func (hw *HeartbeatWorker) emptyPartitions() []cls.PartitionInfo {
+	result := make([]cls.PartitionInfo, 0, len(hw.ConsumerOption.TopicIDs))
 	for _, topicID := range hw.ConsumerOption.TopicIDs {
-		result = append(result, tencentcloud_cls_sdk_go.PartitionInfo{
+		result = append(result, cls.PartitionInfo{
 			TopicID:    topicID,
 			Partitions: []int{},
 		})
@@ -358,7 +359,7 @@ func (hw *HeartbeatWorker) formatPartitionInfo(topicID string, partitions []int)
 }
 
 // GetHeldPartitions get current held partitions
-func (hw *HeartbeatWorker) GetHeldPartitions() []tencentcloud_cls_sdk_go.PartitionInfo {
+func (hw *HeartbeatWorker) GetHeldPartitions() []cls.PartitionInfo {
 	hw.lock.RLock()
 	defer hw.lock.RUnlock()
 	return hw.copyPartitions(hw.HeldPartitions)
@@ -370,9 +371,9 @@ func (hw *HeartbeatWorker) RemoveHeartPartition(topicID string, partitionID int)
 	defer hw.lock.Unlock()
 
 	hw.Logger.Info("Try to remove partition",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: topicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: partitionID},
-		tencentcloud_cls_sdk_go.Field{Key: "current partitions", Value: hw.HeldPartitions},
+		cls.Field{Key: "topicID", Value: topicID},
+		cls.Field{Key: "partitionID", Value: partitionID},
+		cls.Field{Key: "current partitions", Value: hw.HeldPartitions},
 	)
 
 	// remove from HeldPartitions
@@ -404,8 +405,8 @@ func (hw *HeartbeatWorker) RemoveHeartPartition(topicID string, partitionID int)
 	}
 
 	hw.Logger.Info("Removed partition",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: topicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: partitionID},
+		cls.Field{Key: "topicID", Value: topicID},
+		cls.Field{Key: "partitionID", Value: partitionID},
 	)
 }
 

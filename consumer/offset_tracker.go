@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 type OffsetTracker struct {
@@ -109,11 +110,11 @@ func (t *OffsetTracker) FlushCheck() {
 	}
 }
 
-func (t *OffsetTracker) GenerateOffsets(offset int64) []tencentcloud_cls_sdk_go.TopicPartitionOffsetsInfo {
-	return []tencentcloud_cls_sdk_go.TopicPartitionOffsetsInfo{
+func (t *OffsetTracker) GenerateOffsets(offset int64) []cls.TopicPartitionOffsetsInfo {
+	return []cls.TopicPartitionOffsetsInfo{
 		{
 			TopicID: t.topicID,
-			PartitionOffsets: []tencentcloud_cls_sdk_go.PartitionOffset{
+			PartitionOffsets: []cls.PartitionOffset{
 				{
 					PartitionID: t.partitionID,
 					Offset:      offset,

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
-	"go.uber.org/zap"
 )
 
 // Responsible for unified request encapsulation for cloud APIs
@@ -84,7 +84,7 @@ func NewYunApiLogClient(accessKeyId, accessKey string, internal bool, securityTo
 
 	clsClient, _ := NewCLSClient(&Options{
 		Host:         endpoint,
-		Timeout:      30000, 
+		Timeout:      30000,
 		IdleConn:     50,
 		CompressType: "lz4",
 		Credentials: Credentials{
@@ -224,7 +224,7 @@ func (c *YunApiLogClient) DoRequest(
 			logger.Error("Server error occurred",
 				Field{Key: "status_code", Value: resp.StatusCode},
 				Field{Key: "error_message", Value: lastErr.Error()},
-				Field{Key: "retry_count", Value: i+1},
+				Field{Key: "retry_count", Value: i + 1},
 			)
 			if i < maxRetries-1 {
 				time.Sleep(1 * time.Second)

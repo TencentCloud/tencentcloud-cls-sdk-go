@@ -3,8 +3,9 @@ package consumer
 import (
 	"fmt"
 	"go.uber.org/zap"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"time"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 // ProcessorBase 对应 Python ConsumerProcessorBase
@@ -34,15 +35,15 @@ func (p *ProcessorBase) SaveOffset(tracker *OffsetTracker, force bool) {
 		panic(err)
 	}
 	defer zapLogger.Sync()
-	logger := tencentcloud_cls_sdk_go.NewZapLogger(zapLogger)
+	logger := cls.NewZapLogger(zapLogger)
 	currentTime := time.Now().Unix()
 	if force || currentTime-p.LastCheckTime > p.OffsetTimeout {
 		err := tracker.SaveOffset(true)
 		if err != nil {
 			logger.Error("Fail to store offset for partition",
-				tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: p.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: p.PartitionID},
-				tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+				cls.Field{Key: "topic_id", Value: p.TopicID},
+				cls.Field{Key: "partition_id", Value: p.PartitionID},
+				cls.Field{Key: "error", Value: err.Error()},
 			)
 		}
 		p.LastCheckTime = currentTime
@@ -50,9 +51,9 @@ func (p *ProcessorBase) SaveOffset(tracker *OffsetTracker, force bool) {
 		err := tracker.SaveOffset(false)
 		if err != nil {
 			logger.Error("Fail to store offset for partition",
-				tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: p.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: p.PartitionID},
-				tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+				cls.Field{Key: "topic_id", Value: p.TopicID},
+				cls.Field{Key: "partition_id", Value: p.PartitionID},
+				cls.Field{Key: "error", Value: err.Error()},
 			)
 		}
 	}
@@ -70,15 +71,15 @@ func (p *ProcessorBase) Shutdown(tracker *OffsetTracker) error {
 		panic(err)
 	}
 	defer zapLogger.Sync()
-	logger := tencentcloud_cls_sdk_go.NewZapLogger(zapLogger)
+	logger := cls.NewZapLogger(zapLogger)
 	consumerClient := tracker.consumerGroupClient
 	id := fmt.Sprintf("%s/%s/%s/%s/%d",
 		consumerClient.LogsetID, p.TopicID,
 		consumerClient.ConsumerGroup, consumerClient.Consumer,
 		p.PartitionID)
 	logger.Info("ConsumerProcessor is shutdown",
-		tencentcloud_cls_sdk_go.Field{Key: "consumer_id", Value: id},
-		tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: p.PartitionID},
+		cls.Field{Key: "consumer_id", Value: id},
+		cls.Field{Key: "partition_id", Value: p.PartitionID},
 	)
 	p.SaveOffset(tracker, true)
 	return nil
@@ -86,7 +87,7 @@ func (p *ProcessorBase) Shutdown(tracker *OffsetTracker) error {
 
 // Processor 接口
 type Processor interface {
-	Process(logs []*tencentcloud_cls_sdk_go.Log, tracker *OffsetTracker) (interface{}, error)
+	Process(logs []*cls.Log, tracker *OffsetTracker) (interface{}, error)
 	Initialize(topicID string)
 	Shutdown(tracker *OffsetTracker) error
 	SaveOffset(tracker *OffsetTracker, force bool)
@@ -94,10 +95,10 @@ type Processor interface {
 
 type ConsumerProcessorAdaptor struct {
 	*ProcessorBase
-	Func func(topicID string, partitionID int, logs []*tencentcloud_cls_sdk_go.Log) interface{}
+	Func func(topicID string, partitionID int, logs []*cls.Log) interface{}
 }
 
-func (a *ConsumerProcessorAdaptor) Process(logs []*tencentcloud_cls_sdk_go.Log, tracker *OffsetTracker) (interface{}, error) {
+func (a *ConsumerProcessorAdaptor) Process(logs []*cls.Log, tracker *OffsetTracker) (interface{}, error) {
 	ret := a.Func(a.TopicID, a.PartitionID, logs)
 	if b, ok := ret.(bool); ok && !b {
 		// do not save offset when getting False

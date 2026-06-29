@@ -5,8 +5,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"time"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 // PartitionConsumerWorker simplified partition consumer Worker
@@ -19,7 +20,7 @@ type PartitionConsumerWorker struct {
 	LogClient            *ConsumerClient
 	Processor            Processor
 	OffsetTracker        *OffsetTracker
-	Logger               tencentcloud_cls_sdk_go.Logger
+	Logger               cls.Logger
 	OffsetStartTime      string
 	OffsetEndTime        string
 	StartTime            int64
@@ -33,7 +34,7 @@ type PartitionConsumerWorker struct {
 	LastFetchTime        int64
 	LastFetchCount       int
 	LastEmptyFlushTime   int64 // unix seconds; used for the "flush offset every 30s while idle" protection
-	LogList              []*tencentcloud_cls_sdk_go.Log
+	LogList              []*cls.Log
 	processorLock        *sync.Mutex
 	closeOnce            sync.Once
 	statsLock            sync.RWMutex
@@ -75,11 +76,11 @@ func NewPartitionConsumerWorker(
 		Initialized:            false,
 		LastFetchTime:          0,
 		LastFetchCount:         0,
-		LogList:                make([]*tencentcloud_cls_sdk_go.Log, 0),
+		LogList:                make([]*cls.Log, 0),
 		processorLock:          processorLock,
 		TotalLogsConsumed:      0,
 		TotalLogGroupsConsumed: 0,
-		Logger:                 tencentcloud_cls_sdk_go.GetZapLoggerAdapter(),
+		Logger:                 cls.GetZapLoggerAdapter(),
 	}
 }
 
@@ -108,8 +109,8 @@ func (pw *PartitionConsumerWorker) ConsumeWithContext(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			pw.Logger.Info("Context cancelled, stopping consumption",
-				tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
+				cls.Field{Key: "topicID", Value: pw.TopicID},
+				cls.Field{Key: "partitionID", Value: pw.PartitionID},
 			)
 			pw.close()
 			return
@@ -134,8 +135,8 @@ func (pw *PartitionConsumerWorker) ConsumeWithContext(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			pw.Logger.Info("Context cancelled during sleep, stopping consumption",
-				tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
+				cls.Field{Key: "topicID", Value: pw.TopicID},
+				cls.Field{Key: "partitionID", Value: pw.PartitionID},
 			)
 			pw.close()
 			return
@@ -147,8 +148,8 @@ func (pw *PartitionConsumerWorker) ConsumeWithContext(ctx context.Context) {
 	// consumption end, force submit offset
 	pw.close()
 	pw.Logger.Info("Consumer finished, offset flushed",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
+		cls.Field{Key: "topicID", Value: pw.TopicID},
+		cls.Field{Key: "partitionID", Value: pw.PartitionID},
 	)
 }
 
@@ -160,8 +161,8 @@ func (pw *PartitionConsumerWorker) Consume() {
 // initialize initialization
 func (pw *PartitionConsumerWorker) initialize() {
 	pw.Logger.Info("Initializing partition worker",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
+		cls.Field{Key: "topicID", Value: pw.TopicID},
+		cls.Field{Key: "partitionID", Value: pw.PartitionID},
 	)
 
 	// initialize processor under lock, because the default adaptor keeps mutable topic/partition state.
@@ -180,7 +181,7 @@ func (pw *PartitionConsumerWorker) initialize() {
 		pw.OffsetTracker.SetMemoryOffset(offset)
 		pw.OffsetTracker.SetPersistentOffset(offset)
 		pw.Logger.Info("Initialized with persistent offset",
-			tencentcloud_cls_sdk_go.Field{Key: "offset", Value: offset},
+			cls.Field{Key: "offset", Value: offset},
 		)
 	} else {
 		// if consumer group does not exist or has no offset record, start from begin position
@@ -189,13 +190,13 @@ func (pw *PartitionConsumerWorker) initialize() {
 		if beginErr == nil && beginOffset >= 0 {
 			pw.setNextFetchOffset(beginOffset)
 			pw.Logger.Info("Initialized with begin offset",
-				tencentcloud_cls_sdk_go.Field{Key: "offset", Value: beginOffset},
+				cls.Field{Key: "offset", Value: beginOffset},
 			)
 		} else {
 			// if failed to get begin offset, use 0
 			pw.setNextFetchOffset(0)
 			pw.Logger.Info("Failed to get offset, using default 0",
-				tencentcloud_cls_sdk_go.Field{Key: "offset", Value: int64(0)},
+				cls.Field{Key: "offset", Value: int64(0)},
 			)
 		}
 	}
@@ -204,7 +205,7 @@ func (pw *PartitionConsumerWorker) initialize() {
 }
 
 // fetchData fetch data - serial implementation
-func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGroup {
+func (pw *PartitionConsumerWorker) fetchData() []*cls.LogGroup {
 	// check if it has been closed
 	if pw.IsShutdown() {
 		return nil
@@ -231,9 +232,9 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 
 	nextFetchOffset := pw.getNextFetchOffset()
 	pw.Logger.Info("Fetching data",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
-		tencentcloud_cls_sdk_go.Field{Key: "offset", Value: nextFetchOffset},
+		cls.Field{Key: "topicID", Value: pw.TopicID},
+		cls.Field{Key: "partitionID", Value: pw.PartitionID},
+		cls.Field{Key: "offset", Value: nextFetchOffset},
 	)
 
 	pw.setLastFetchTime(now)
@@ -255,7 +256,7 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 	}
 
 	// add retry mechanism
-	var resp *tencentcloud_cls_sdk_go.PullLogResponse
+	var resp *cls.PullLogResponse
 	var err error
 
 	for retryTimes := 0; retryTimes < 3; retryTimes++ {
@@ -271,8 +272,8 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 		// check if it is an invalid offset error, if so, try to get offset again
 		if retryTimes == 0 && strings.Contains(strings.ToLower(err.Error()), "invalidoffset") {
 			pw.Logger.Info("Invalid offset detected, trying to get end offset",
-				tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
+				cls.Field{Key: "topic_id", Value: pw.TopicID},
+				cls.Field{Key: "partition_id", Value: pw.PartitionID},
 			)
 
 			// try to get end offset
@@ -281,15 +282,15 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 				nextFetchOffset = offsets[0].PartitionOffsets[0].Offset
 				pw.setNextFetchOffset(nextFetchOffset)
 				pw.Logger.Info("Updated to end offset",
-					tencentcloud_cls_sdk_go.Field{Key: "new_offset", Value: nextFetchOffset},
+					cls.Field{Key: "new_offset", Value: nextFetchOffset},
 				)
 				continue
 			}
 		}
 
 		pw.Logger.Error("Error fetching data (retry)",
-			tencentcloud_cls_sdk_go.Field{Key: "retry", Value: retryTimes},
-			tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+			cls.Field{Key: "retry", Value: retryTimes},
+			cls.Field{Key: "error", Value: err.Error()},
 		)
 
 		// last retry failed, return nil
@@ -309,21 +310,21 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 	nextOffset := resp.GetNextOffset()
 
 	pw.Logger.Info("Fetched log groups",
-		tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
-		tencentcloud_cls_sdk_go.Field{Key: "log_groups", Value: len(logGroups)},
-		tencentcloud_cls_sdk_go.Field{Key: "next_offset", Value: nextOffset},
-		tencentcloud_cls_sdk_go.Field{Key: "offset", Value: pw.OffsetTracker.GetOffset()},
+		cls.Field{Key: "topic_id", Value: pw.TopicID},
+		cls.Field{Key: "partition_id", Value: pw.PartitionID},
+		cls.Field{Key: "log_groups", Value: len(logGroups)},
+		cls.Field{Key: "next_offset", Value: nextOffset},
+		cls.Field{Key: "offset", Value: pw.OffsetTracker.GetOffset()},
 	)
 
 	// update next fetch offset
 	currentNextFetchOffset := pw.getNextFetchOffset()
 	pw.Logger.Info("Checking offset update",
-		tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
-		tencentcloud_cls_sdk_go.Field{Key: "nextOffset", Value: nextOffset},
-		tencentcloud_cls_sdk_go.Field{Key: "nextOffset > 0", Value: nextOffset > 0},
-		tencentcloud_cls_sdk_go.Field{Key: "current_next_fetch_offset", Value: currentNextFetchOffset},
+		cls.Field{Key: "topic_id", Value: pw.TopicID},
+		cls.Field{Key: "partition_id", Value: pw.PartitionID},
+		cls.Field{Key: "nextOffset", Value: nextOffset},
+		cls.Field{Key: "nextOffset > 0", Value: nextOffset > 0},
+		cls.Field{Key: "current_next_fetch_offset", Value: currentNextFetchOffset},
 	)
 
 	if nextOffset > 0 {
@@ -334,20 +335,20 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 		// still progressing, not at the end
 		pw.setReachEnd(false)
 		pw.Logger.Info("Updated next fetch offset",
-			tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-			tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
-			tencentcloud_cls_sdk_go.Field{Key: "old_offset", Value: oldOffset},
-			tencentcloud_cls_sdk_go.Field{Key: "new_offset", Value: nextOffset},
-			tencentcloud_cls_sdk_go.Field{Key: "current_next_fetch_offset", Value: nextOffset},
+			cls.Field{Key: "topic_id", Value: pw.TopicID},
+			cls.Field{Key: "partition_id", Value: pw.PartitionID},
+			cls.Field{Key: "old_offset", Value: oldOffset},
+			cls.Field{Key: "new_offset", Value: nextOffset},
+			cls.Field{Key: "current_next_fetch_offset", Value: nextOffset},
 		)
 	} else {
 		// nextOffset <= 0 (-1 / PULL_NO_LOG) means there is no more data to pull:
 		// we have caught up to the latest / configured end offset (logic.md 199/230).
 		pw.setReachEnd(true)
 		pw.Logger.Info("No offset update needed, reached end",
-			tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-			tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
-			tencentcloud_cls_sdk_go.Field{Key: "nextOffset", Value: nextOffset},
+			cls.Field{Key: "topic_id", Value: pw.TopicID},
+			cls.Field{Key: "partition_id", Value: pw.PartitionID},
+			cls.Field{Key: "nextOffset", Value: nextOffset},
 		)
 	}
 
@@ -362,9 +363,9 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 		} else if now-last >= 30 {
 			if err := pw.OffsetTracker.FlushOffset(false); err != nil {
 				pw.Logger.Error("Failed to flush offset on idle",
-					tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: pw.TopicID},
-					tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: pw.PartitionID},
-					tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+					cls.Field{Key: "topic_id", Value: pw.TopicID},
+					cls.Field{Key: "partition_id", Value: pw.PartitionID},
+					cls.Field{Key: "error", Value: err.Error()},
 				)
 			}
 			pw.setLastEmptyFlushTime(now)
@@ -378,7 +379,7 @@ func (pw *PartitionConsumerWorker) fetchData() []*tencentcloud_cls_sdk_go.LogGro
 }
 
 // processData process data - serial implementation
-func (pw *PartitionConsumerWorker) processData(logGroups []*tencentcloud_cls_sdk_go.LogGroup) {
+func (pw *PartitionConsumerWorker) processData(logGroups []*cls.LogGroup) {
 	// check if it has been closed
 	if pw.IsShutdown() {
 		return
@@ -389,14 +390,14 @@ func (pw *PartitionConsumerWorker) processData(logGroups []*tencentcloud_cls_sdk
 	}
 
 	pw.Logger.Info("Processing log groups",
-		tencentcloud_cls_sdk_go.Field{Key: "log_groups", Value: len(logGroups)},
+		cls.Field{Key: "log_groups", Value: len(logGroups)},
 	)
 
 	// add panic recovery
 	defer func() {
 		if r := recover(); r != nil {
 			pw.Logger.Error("Panic in processData",
-				tencentcloud_cls_sdk_go.Field{Key: "error", Value: r},
+				cls.Field{Key: "error", Value: r},
 			)
 		}
 	}()
@@ -409,7 +410,7 @@ func (pw *PartitionConsumerWorker) processData(logGroups []*tencentcloud_cls_sdk
 	for _, logGroup := range logGroups {
 		totalLogsInThisBatch += int64(len(logGroup.Logs))
 	}
-	pw.LogList = make([]*tencentcloud_cls_sdk_go.Log, 0, totalLogsInThisBatch)
+	pw.LogList = make([]*cls.Log, 0, totalLogsInThisBatch)
 	// 更新统计信息
 	pw.addConsumedStats(totalLogsInThisBatch, int64(len(logGroups)))
 	// call processor to process data
@@ -427,7 +428,7 @@ func (pw *PartitionConsumerWorker) processData(logGroups []*tencentcloud_cls_sdk
 	}()
 	if err != nil {
 		pw.Logger.Error("Error processing data",
-			tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+			cls.Field{Key: "error", Value: err.Error()},
 		)
 		return
 	}
@@ -436,8 +437,8 @@ func (pw *PartitionConsumerWorker) processData(logGroups []*tencentcloud_cls_sdk
 	// driven once per loop iteration in ConsumeWithContext (covers idle partitions too).
 
 	pw.Logger.Info("Successfully processed log groups",
-		tencentcloud_cls_sdk_go.Field{Key: "log_groups", Value: len(logGroups)},
-		tencentcloud_cls_sdk_go.Field{Key: "current_offset", Value: pw.OffsetTracker.GetOffset()},
+		cls.Field{Key: "log_groups", Value: len(logGroups)},
+		cls.Field{Key: "current_offset", Value: pw.OffsetTracker.GetOffset()},
 	)
 }
 
@@ -446,8 +447,8 @@ func (pw *PartitionConsumerWorker) ShutDown() {
 	pw.close()
 
 	pw.Logger.Info("Shutting down partition worker",
-		tencentcloud_cls_sdk_go.Field{Key: "topicID", Value: pw.TopicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partitionID", Value: pw.PartitionID},
+		cls.Field{Key: "topicID", Value: pw.TopicID},
+		cls.Field{Key: "partitionID", Value: pw.PartitionID},
 	)
 }
 

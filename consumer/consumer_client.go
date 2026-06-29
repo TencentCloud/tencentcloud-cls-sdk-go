@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"go.uber.org/zap"
 )
 
@@ -12,8 +12,8 @@ import (
 // Responsible for consumer group management, heartbeat, offset management, and log pulling
 
 type ConsumerClient struct {
-	YunApiClient   *tencentcloud_cls_sdk_go.YunApiLogClient
-	PullLogsClient *tencentcloud_cls_sdk_go.PullLogsClient
+	YunApiClient   *cls.YunApiLogClient
+	PullLogsClient *cls.PullLogsClient
 	LogsetID       string
 	TopicIDs       []string
 	ConsumerGroup  string
@@ -22,7 +22,7 @@ type ConsumerClient struct {
 }
 
 // NewConsumerClient constructor
-func NewConsumerClient(yunapi *tencentcloud_cls_sdk_go.YunApiLogClient, pulllogsclient *tencentcloud_cls_sdk_go.PullLogsClient, logsetID string, topicIDs []string, consumerGroup, consumer, region string) *ConsumerClient {
+func NewConsumerClient(yunapi *cls.YunApiLogClient, pulllogsclient *cls.PullLogsClient, logsetID string, topicIDs []string, consumerGroup, consumer, region string) *ConsumerClient {
 	return &ConsumerClient{
 		YunApiClient:   yunapi,
 		PullLogsClient: pulllogsclient,
@@ -35,7 +35,7 @@ func NewConsumerClient(yunapi *tencentcloud_cls_sdk_go.YunApiLogClient, pulllogs
 }
 
 // CreateConsumerGroup create consumer group
-func (c *ConsumerClient) CreateConsumerGroup(timeout int) (*tencentcloud_cls_sdk_go.CreateConsumerGroupResponse, error) {
+func (c *ConsumerClient) CreateConsumerGroup(timeout int) (*cls.CreateConsumerGroupResponse, error) {
 	res, err := c.YunApiClient.CreateConsumerGroup(c.LogsetID, c.ConsumerGroup, timeout, c.TopicIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error occur when create consumer group: %v", err)
@@ -66,7 +66,7 @@ func (c *ConsumerClient) CreateConsumerGroup(timeout int) (*tencentcloud_cls_sdk
 }
 
 // ListConsumerGroup query current consumer group information
-func (c *ConsumerClient) ListConsumerGroup() (*tencentcloud_cls_sdk_go.ConsumerGroupEntity, error) {
+func (c *ConsumerClient) ListConsumerGroup() (*cls.ConsumerGroupEntity, error) {
 	resp, err := c.YunApiClient.ListConsumerGroup(c.LogsetID, c.TopicIDs)
 	if err != nil {
 		return nil, err
@@ -92,24 +92,24 @@ func (c *ConsumerClient) DeleteConsumerGroup() error {
 }
 
 // Heartbeat heartbeat
-func (c *ConsumerClient) Heartbeat(partitions []tencentcloud_cls_sdk_go.PartitionInfo, response *[]tencentcloud_cls_sdk_go.PartitionInfo) bool {
+func (c *ConsumerClient) Heartbeat(partitions []cls.PartitionInfo, response *[]cls.PartitionInfo) bool {
 	zapLogger, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
 	}
 	defer zapLogger.Sync()
-	logger := tencentcloud_cls_sdk_go.NewZapLogger(zapLogger)
+	logger := cls.NewZapLogger(zapLogger)
 	resp, err := c.YunApiClient.Heartbeat(c.LogsetID, c.ConsumerGroup, c.Consumer, partitions)
 	if err != nil {
 		logger.Warn("Heartbeat error:",
-			tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+			cls.Field{Key: "error", Value: err.Error()},
 		)
 		return false
 	}
 	if resp.Response.Error != nil {
 		logger.Warn("Heartbeat API error:",
-			tencentcloud_cls_sdk_go.Field{Key: "errorCode", Value: resp.Response.Error.Code},
-			tencentcloud_cls_sdk_go.Field{Key: "errorMessage", Value: resp.Response.Error.Message},
+			cls.Field{Key: "errorCode", Value: resp.Response.Error.Code},
+			cls.Field{Key: "errorMessage", Value: resp.Response.Error.Message},
 		)
 		return false
 	}
@@ -120,7 +120,7 @@ func (c *ConsumerClient) Heartbeat(partitions []tencentcloud_cls_sdk_go.Partitio
 }
 
 // UpdateOffsets
-func (c *ConsumerClient) UpdateOffsets(offsets []tencentcloud_cls_sdk_go.TopicPartitionOffsetsInfo) error {
+func (c *ConsumerClient) UpdateOffsets(offsets []cls.TopicPartitionOffsetsInfo) error {
 	resp, err := c.YunApiClient.UpdateOffsets(c.LogsetID, c.ConsumerGroup, c.Consumer, offsets)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (c *ConsumerClient) UpdateOffsets(offsets []tencentcloud_cls_sdk_go.TopicPa
 }
 
 // GetOffsets get offsets
-func (c *ConsumerClient) GetOffsets(topicID string, partitionID int, position string) ([]tencentcloud_cls_sdk_go.TopicPartitionOffsetsInfo, error) {
+func (c *ConsumerClient) GetOffsets(topicID string, partitionID int, position string) ([]cls.TopicPartitionOffsetsInfo, error) {
 	resp, err := c.YunApiClient.GetOffsets(c.LogsetID, c.ConsumerGroup, topicID, partitionID, position)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (c *ConsumerClient) GetOffsets(topicID string, partitionID int, position st
 }
 
 // Pull logs, call YunApiLogClient's PullLogsAndParse
-func (c *ConsumerClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64) (*tencentcloud_cls_sdk_go.PullLogResponse, error) {
+func (c *ConsumerClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64) (*cls.PullLogResponse, error) {
 	return c.PullLogsClient.PullLogsAndParse(topicId, partitionId, size, startTime, offset, endTime)
 }
 

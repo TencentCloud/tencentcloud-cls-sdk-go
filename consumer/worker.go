@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"time"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 // ConsumerWorker consumer Worker main process
@@ -23,17 +24,17 @@ type ConsumerWorker struct {
 	isShutdown                  bool
 	ShutdownLock                sync.Mutex
 	LastOwnedConsumerFinishTime int64 // all partitions completed timestamp
-	Logger                      tencentcloud_cls_sdk_go.Logger
+	Logger                      cls.Logger
 	ctx                         context.Context
 	cancel                      context.CancelFunc
 }
 
 // ConsumerOption consumer configuration options
 type ConsumerOption struct {
-	Endpoint             string
-	AccessKeyID          string
-	AccessKey            string
-	Region               string
+	Endpoint    string
+	AccessKeyID string
+	AccessKey   string
+	Region      string
 	// Internal: if true, the underlying YunApi client uses the VPC internal endpoint
 	// "cls.internal.tencentcloudapi.com" for cloud API calls (consumer group / heartbeat
 	// / offsets). Region is still required and is sent via the X-TC-Region request header.
@@ -57,14 +58,14 @@ func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *Con
 	// Always pass the real region down: the SDK uses Region to fill the X-TC-Region
 	// public request header (required by the server). Internal endpoint switching is
 	// handled inside NewYunApiLogClient based on the internal flag.
-	yunapi := tencentcloud_cls_sdk_go.NewYunApiLogClient(
+	yunapi := cls.NewYunApiLogClient(
 		consumerOption.AccessKeyID,
 		consumerOption.AccessKey,
 		consumerOption.Internal, "", "",
 		consumerOption.Region,
 	)
 
-	pullLogs := tencentcloud_cls_sdk_go.NewPullLogsClient(
+	pullLogs := cls.NewPullLogsClient(
 		consumerOption.Endpoint,
 		consumerOption.AccessKeyID,
 		consumerOption.AccessKey,
@@ -89,7 +90,7 @@ func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *Con
 		PartitionWorkers:            make(map[string]*PartitionConsumerWorker),
 		isShutdown:                  false,
 		LastOwnedConsumerFinishTime: 0, // initialize intelligent stop timestamp
-		Logger:                      tencentcloud_cls_sdk_go.GetZapLoggerAdapter(),
+		Logger:                      cls.GetZapLoggerAdapter(),
 		ctx:                         ctx,
 		cancel:                      cancel,
 	}
@@ -118,15 +119,15 @@ func (cw *ConsumerWorker) Run(ctx context.Context) error {
 // Start start consumer Worker
 func (cw *ConsumerWorker) Start() error {
 	cw.Logger.Info("Starting consumer worker",
-		tencentcloud_cls_sdk_go.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
-		tencentcloud_cls_sdk_go.Field{Key: "consumer_name", Value: cw.ConsumerOption.ConsumerName},
+		cls.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
+		cls.Field{Key: "consumer_name", Value: cw.ConsumerOption.ConsumerName},
 	)
 
 	// 1. create consumer group
 	err := cw.createConsumerGroup()
 	if err != nil {
 		cw.Logger.Error("Failed to create consumer group",
-			tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+			cls.Field{Key: "error", Value: err.Error()},
 		)
 		return err
 	}
@@ -288,15 +289,15 @@ func (cw *ConsumerWorker) getOrCreatePartitionWorker(topicID string, partitionID
 
 	cw.PartitionWorkers[key] = worker
 	cw.Logger.Info("Created partition worker",
-		tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: topicID},
-		tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: partitionID},
+		cls.Field{Key: "topic_id", Value: topicID},
+		cls.Field{Key: "partition_id", Value: partitionID},
 	)
 
 	return worker
 }
 
 // cleanupUnusedPartitionWorkers clean up unused partition workers
-func (cw *ConsumerWorker) cleanupUnusedPartitionWorkers(activePartitions []tencentcloud_cls_sdk_go.PartitionInfo) {
+func (cw *ConsumerWorker) cleanupUnusedPartitionWorkers(activePartitions []cls.PartitionInfo) {
 	// build active partition key set
 	activeKeys := make(map[string]bool)
 	for _, partitionInfo := range activePartitions {
@@ -315,16 +316,16 @@ func (cw *ConsumerWorker) cleanupUnusedPartitionWorkers(activePartitions []tence
 	for key, worker := range cw.PartitionWorkers {
 		if !activeKeys[key] {
 			cw.Logger.Info("Try to call shut down for unassigned consumer partition",
-				tencentcloud_cls_sdk_go.Field{Key: "partition_key", Value: key},
+				cls.Field{Key: "partition_key", Value: key},
 			)
 			worker.ShutDown()
 			cw.Logger.Info("Complete call shut down for unassigned consumer partition",
-				tencentcloud_cls_sdk_go.Field{Key: "partition_key", Value: key},
+				cls.Field{Key: "partition_key", Value: key},
 			)
 		}
 		if worker.IsShutdown() {
 			cw.Logger.Info("Remove an unassigned consumer partition",
-				tencentcloud_cls_sdk_go.Field{Key: "partition_key", Value: key},
+				cls.Field{Key: "partition_key", Value: key},
 			)
 			// remove from heartbeat partitions (corresponding to Python version remove_heart_partition)
 			if cw.HeartbeatWorker != nil {
@@ -448,7 +449,7 @@ func (cw *ConsumerWorker) GetStats() map[string]interface{} {
 // DeleteConsumerGroup delete consumer group
 func (cw *ConsumerWorker) DeleteConsumerGroup() error {
 	cw.Logger.Info("Deleting consumer group",
-		tencentcloud_cls_sdk_go.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
+		cls.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
 	)
 	// ensure all partition workers are stopped
 	cw.ShutdownLock.Lock()
@@ -470,8 +471,8 @@ func (cw *ConsumerWorker) DeleteConsumerGroup() error {
 	for _, worker := range cw.snapshotPartitionWorkers() {
 		if !worker.IsShutdown() {
 			cw.Logger.Info("Forcing shutdown of partition worker",
-				tencentcloud_cls_sdk_go.Field{Key: "topic_id", Value: worker.TopicID},
-				tencentcloud_cls_sdk_go.Field{Key: "partition_id", Value: worker.PartitionID},
+				cls.Field{Key: "topic_id", Value: worker.TopicID},
+				cls.Field{Key: "partition_id", Value: worker.PartitionID},
 			)
 			worker.ShutDown()
 		}
@@ -485,22 +486,22 @@ func (cw *ConsumerWorker) DeleteConsumerGroup() error {
 		err := cw.ConsumerClient.DeleteConsumerGroup()
 		if err == nil {
 			cw.Logger.Info("Successfully deleted consumer group",
-				tencentcloud_cls_sdk_go.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
+				cls.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
 			)
 			return nil
 		}
 		lastErr = err
 		cw.Logger.Warn("Failed to delete consumer group, retrying",
-			tencentcloud_cls_sdk_go.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
-			tencentcloud_cls_sdk_go.Field{Key: "attempt", Value: i + 1},
-			tencentcloud_cls_sdk_go.Field{Key: "error", Value: err.Error()},
+			cls.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
+			cls.Field{Key: "attempt", Value: i + 1},
+			cls.Field{Key: "error", Value: err.Error()},
 		)
 		// wait for a longer time before retrying
 		time.Sleep(time.Duration(i+1) * 10 * time.Second)
 	}
 	cw.Logger.Error("Failed to delete consumer group after retries",
-		tencentcloud_cls_sdk_go.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
-		tencentcloud_cls_sdk_go.Field{Key: "error", Value: lastErr.Error()},
+		cls.Field{Key: "consumer_group", Value: cw.ConsumerOption.ConsumerGroup},
+		cls.Field{Key: "error", Value: lastErr.Error()},
 	)
 	return fmt.Errorf("failed to delete consumer group %s after retries: %v", cw.ConsumerOption.ConsumerGroup, lastErr)
 }

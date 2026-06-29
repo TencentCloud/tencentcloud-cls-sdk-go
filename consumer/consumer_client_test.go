@@ -2,8 +2,9 @@ package consumer
 
 import (
 	"strings"
-	tencentcloud_cls_sdk_go "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"testing"
+
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 func TestGetPartitionOffsetsInvalidParams(t *testing.T) {
@@ -107,14 +108,14 @@ func TestPullLogResponseUsesCurrentSDKFields(t *testing.T) {
 	logTime := int64(1234567890)
 	key := "message"
 	value := "test log"
-	resp := &tencentcloud_cls_sdk_go.PullLogResponse{
+	resp := &cls.PullLogResponse{
 		NextOffset: 101,
-		LogGroups: []*tencentcloud_cls_sdk_go.LogGroup{
+		LogGroups: []*cls.LogGroup{
 			{
-				Logs: []*tencentcloud_cls_sdk_go.Log{
+				Logs: []*cls.Log{
 					{
 						Time: &logTime,
-						Contents: []*tencentcloud_cls_sdk_go.Log_Content{
+						Contents: []*cls.Log_Content{
 							{Key: &key, Value: &value},
 						},
 					},
