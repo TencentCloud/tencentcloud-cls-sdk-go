@@ -1,7 +1,26 @@
 Tencent CLS Log SDK
 ---
 
-"tencent cloud cls log sdk" 是专门为cls量身打造日志上传SDK。 一切只为满足您的需求～
+## 一、SDK 功能说明
+
+`tencentcloud-cls-sdk-go` 是腾讯云日志服务（CLS）官方 Go SDK，提供**日志上传**与**日志消费**两大能力：
+
+- **日志上传**：异步 / 同步生产者，支持攒批聚合、失败重试、回调通知、多种压缩（lz4 / zstd / deflate），开箱即用。
+- **日志消费**：基于消费组（Consumer Group）的多分区并发消费、自动 offset 持久化与断点续传，业务侧只需实现一个 `Processor` 接口即可。
+
+通用特性：
+- 支持 `AccessKeyID + AccessKeySecret` 永久密钥与 `AccessToken` 临时密钥，并提供运行时刷新。
+- 支持按地域 + 网络类型（公网 / 内网 / VPC 内网）自动拼接 endpoint。
+- 失败重试：429 / 5xx 等可恢复错误自动指数退避；4xx 类客户端错误直接失败。
+- 高性能：充分利用 Go 协程并发能力，单实例可支撑高吞吐上报。
+
+```bash
+go get github.com/tencentcloud/tencentcloud-cls-sdk-go
+```
+
+---
+
+## 二、上传 SDK 说明
 
 ### USAGE
 
@@ -116,6 +135,21 @@ func (callback *Callback) Fail(result *tencentcloud_cls_sdk_go.Result) {
 protoc --gofast_out=. cls.proto
 ```
 
-### feature
+---
 
+## 三、消费 SDK 说明
+
+本 SDK 内置了基于「消费组（Consumer Group）」的高阶日志消费模块 `consumer`，主要能力：
+
+- **消费组管理**：不存在自动创建、已存在自动复用。
+- **心跳与分区分配**：服务端按 `PartitionStrategy=2` 做动态 rebalance，多实例横向扩容自动均衡分区。
+- **多分区并发消费**：每个分区独立 goroutine 拉取日志并串行调用业务 `Processor`。
+- **Offset 自动持久化**：拉取自动推进 + 60s 周期兜底 + 空闲 30s flush + 退出强制 flush，断点续传无需关心。
+- **智能停止**：配置 `OffsetEndTime` 后所有分区追上末尾即自动退出整个 worker。
+- **VPC / 公网切换**：`Internal=true` 时云 API 走 `cls.internal.tencentcloudapi.com`。
+- **优雅退出与失败自愈**：`InvalidOffset` 自动取最新 offset、心跳超时自动重新分配分区、`Process` panic 不阻塞消费。
+
+最简使用方式：实现 `Processor` 接口 → 构造 `ConsumerOption` → `consumer.NewConsumerWorker(option, processor).Run(ctx)` 即可。
+
+> 详细使用说明、配置参数详解、并发模型、错误处理、FAQ 以及可运行示例（`consumer/demo/consumer_demo.go`）请参见 [`consumer/README.md`](./consumer/README.md)。
 
