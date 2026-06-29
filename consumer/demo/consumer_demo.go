@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/royczyuan/tencentcloud-cls-sdk-go"
-	"github.com/royczyuan/tencentcloud-cls-sdk-go/consumer"
+	"github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	"github.com/tencentcloud/tencentcloud-cls-sdk-go/consumer"
 )
 
 // SampleProcessor example processor

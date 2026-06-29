@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	cls "github.com/royczyuan/tencentcloud-cls-sdk-go"
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 	"go.uber.org/zap"
 )
 

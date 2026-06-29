@@ -1,6 +1,6 @@
 # 腾讯云 CLS Go SDK 消费端使用说明
 
-本包 `github.com/royczyuan/tencentcloud-cls-sdk-go/consumer` 提供基于「消费组（Consumer Group）」的高阶日志消费能力：自动消费组管理、心跳、分区分配、负载均衡、Offset 持久化、断点续传、优雅退出。你只需实现一个 `Processor` 接口即可完成日志消费业务逻辑。
+本包 `github.com/tencentcloud/tencentcloud-cls-sdk-go/consumer` 提供基于「消费组（Consumer Group）」的高阶日志消费能力：自动消费组管理、心跳、分区分配、负载均衡、Offset 持久化、断点续传、优雅退出。你只需实现一个 `Processor` 接口即可完成日志消费业务逻辑。
 
 ---
 
@@ -25,7 +25,7 @@
 ## 二、安装
 
 ```bash
-go get github.com/royczyuan/tencentcloud-cls-sdk-go
+go get github.com/tencentcloud/tencentcloud-cls-sdk-go
 ```
 
 ---
@@ -133,8 +133,8 @@ import (
     "syscall"
     "time"
 
-    "github.com/royczyuan/tencentcloud-cls-sdk-go"
-    "github.com/royczyuan/tencentcloud-cls-sdk-go/consumer"
+    "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+    "github.com/tencentcloud/tencentcloud-cls-sdk-go/consumer"
 )
 
 func main() {

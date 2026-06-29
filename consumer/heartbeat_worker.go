@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	cls "github.com/royczyuan/tencentcloud-cls-sdk-go"
+	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 // HeartbeatWorker heartbeat worker
