@@ -15,7 +15,7 @@ Tencent CLS Log SDK
 - 高性能：充分利用 Go 协程并发能力，单实例可支撑高吞吐上报。
 
 ```bash
-go get github.com/tencentcloud/tencentcloud-cls-sdk-go
+go get github.com/royczyuan/tencentcloud-cls-sdk-go
 ```
 
 ---
@@ -25,7 +25,7 @@ go get github.com/tencentcloud/tencentcloud-cls-sdk-go
 ### USAGE
 
 ```
-go get github.com/tencentcloud/tencentcloud-cls-sdk-go
+go get github.com/royczyuan/tencentcloud-cls-sdk-go
 ```
 
 ### 为什么要使用CLS Log SDK
@@ -53,7 +53,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	"github.com/royczyuan/tencentcloud-cls-sdk-go"
 	"sync"
 	"time"
 )

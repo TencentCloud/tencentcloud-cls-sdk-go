@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	cls "github.com/royczyuan/tencentcloud-cls-sdk-go"
 )
 
 func TestGetPartitionOffsetsInvalidParams(t *testing.T) {

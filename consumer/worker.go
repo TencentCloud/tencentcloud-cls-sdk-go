@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+	cls "github.com/royczyuan/tencentcloud-cls-sdk-go"
 )
 
 // ConsumerWorker consumer Worker main process
