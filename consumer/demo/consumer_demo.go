@@ -70,6 +70,21 @@ func main() {
 		ConsumerGroupTimeout: 20,
 		StartTime:            int64(0),
 		EndTime:              int64(0),
+		// (Optional) DSL pre-filter expression for server-side filtering.
+		// When set on ConsumerOption.Query, only logs that match the expression are
+		// returned to the consumer, which saves both network bandwidth and
+		// client-side CPU. Leave it unset / empty to disable server-side filtering
+		// (default behavior).
+		//
+		// Example: only keep logs whose `status` field is greater than 400 AND
+		// whose `message` field contains the keyword "access failed":
+		//
+		//   query := `log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed")))`
+		//   consumerOption1.Query = query
+		//
+		// DSL syntax reference:
+		// https://cloud.tencent.com/document/product/614/37908
+		Query: "",
 	}
 
 	// create processor

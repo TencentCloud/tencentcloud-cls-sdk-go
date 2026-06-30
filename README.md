@@ -10,7 +10,7 @@ Tencent CLS Log SDK
 
 通用特性：
 - 支持 `AccessKeyID + AccessKeySecret` 永久密钥与 `AccessToken` 临时密钥，并提供运行时刷新。
-- 支持按地域 + 网络类型（公网 / 内网 / VPC 内网）自动拼接 endpoint。
+- 支持按地域自动拼接 endpoint。
 - 失败重试：429 / 5xx 等可恢复错误自动指数退避；4xx 类客户端错误直接失败。
 - 高性能：充分利用 Go 协程并发能力，单实例可支撑高吞吐上报。
 
@@ -145,8 +145,8 @@ protoc --gofast_out=. cls.proto
 - **心跳与分区分配**：服务端按 `PartitionStrategy=2` 做动态 rebalance，多实例横向扩容自动均衡分区。
 - **多分区并发消费**：每个分区独立 goroutine 拉取日志并串行调用业务 `Processor`。
 - **Offset 自动持久化**：拉取自动推进 + 60s 周期兜底 + 空闲 30s flush + 退出强制 flush，断点续传无需关心。
+- **服务端 DSL 预过滤**：通过 `ConsumerOption.Query` 传入 DSL 表达式，命中日志才下发，节省带宽与客户端 CPU。例如 `log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed")))` 仅消费 `status>400` 且 `message` 含 `access failed` 的日志。详见 [日志消费 DSL 过滤语法](https://cloud.tencent.com/document/product/614/37908)。
 - **智能停止**：配置 `OffsetEndTime` 后所有分区追上末尾即自动退出整个 worker。
-- **VPC / 公网切换**：`Internal=true` 时云 API 走 `cls.internal.tencentcloudapi.com`。
 - **优雅退出与失败自愈**：`InvalidOffset` 自动取最新 offset、心跳超时自动重新分配分区、`Process` panic 不阻塞消费。
 
 最简使用方式：实现 `Processor` 接口 → 构造 `ConsumerOption` → `consumer.NewConsumerWorker(option, processor).Run(ctx)` 即可。

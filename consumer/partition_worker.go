@@ -25,6 +25,9 @@ type PartitionConsumerWorker struct {
 	OffsetEndTime        string
 	StartTime            int64
 	EndTime              int64
+	// Query is the optional DSL pre-filter expression forwarded to PullLogs.
+	// Empty string disables server-side filtering.
+	Query                string
 	MaxFetchLogGroupSize int
 	NextFetchOffset      int64
 	shutdown             int32 // 0=running, 1=shutdown; atomic to avoid data race
@@ -56,6 +59,7 @@ func NewPartitionConsumerWorker(
 	offsetEndTime string,
 	startTime int64,
 	endTime int64,
+	query string,
 ) *PartitionConsumerWorker {
 	if processorLock == nil {
 		processorLock = &sync.Mutex{}
@@ -69,6 +73,7 @@ func NewPartitionConsumerWorker(
 		OffsetEndTime:          offsetEndTime,
 		StartTime:              startTime,
 		EndTime:                endTime,
+		Query:                  query,
 		Processor:              processor,
 		OffsetTracker:          NewOffsetTracker(logClient, consumerName, topicID, partitionID),
 		MaxFetchLogGroupSize:   maxFetchLogGroupSize,
@@ -264,7 +269,7 @@ func (pw *PartitionConsumerWorker) fetchData() []*cls.LogGroup {
 		if pw.IsShutdown() {
 			return nil
 		}
-		resp, err = pw.LogClient.PullLogs(pw.TopicID, pw.PartitionID, pw.MaxFetchLogGroupSize, startTimePtr, nextFetchOffset, endTimePtr)
+		resp, err = pw.LogClient.PullLogs(pw.TopicID, pw.PartitionID, pw.MaxFetchLogGroupSize, startTimePtr, nextFetchOffset, endTimePtr, pw.Query)
 		if err == nil {
 			break
 		}
