@@ -144,9 +144,10 @@ func (c *ConsumerClient) GetOffsets(topicID string, partitionID int, position st
 	return offsets, nil
 }
 
-// Pull logs, call YunApiLogClient's PullLogsAndParse
-func (c *ConsumerClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64) (*cls.PullLogResponse, error) {
-	return c.PullLogsClient.PullLogsAndParse(topicId, partitionId, size, startTime, offset, endTime)
+// Pull logs, call YunApiLogClient's PullLogsAndParse.
+// query is an optional DSL pre-filter expression; pass "" to disable server-side filtering.
+func (c *ConsumerClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64, query string) (*cls.PullLogResponse, error) {
+	return c.PullLogsClient.PullLogsAndParse(topicId, partitionId, size, startTime, offset, endTime, query)
 }
 
 // GetPartitionOffsets get offset of specified partition

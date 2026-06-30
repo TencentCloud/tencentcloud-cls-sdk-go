@@ -38,10 +38,16 @@ type PullLogsRequest struct {
 	PartitionId  int    `json:"PartitionId"`
 	StartTime    int64  `json:"StartTime"`
 	EndTime      *int64 `json:"EndTime,omitempty"`
+	// Query is an optional DSL pre-filter expression applied on the server side
+	// before logs are returned. Example:
+	//   log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed")))
+	// See https://cloud.tencent.com/document/product/614/37908 for the full DSL syntax.
+	Query string `json:"Query"`
 }
 
-// PullLogs pulls logs and returns snappy compressed binary data
-func (c *PullLogsClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64) ([]byte, error) {
+// PullLogs pulls logs and returns snappy compressed binary data.
+// query is an optional DSL pre-filter expression; pass "" to disable server-side filtering.
+func (c *PullLogsClient) PullLogs(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64, query string) ([]byte, error) {
 	// 处理 StartTime，如果为 nil 则使用 0
 	var startTimeValue int64
 	if startTime != nil {
@@ -55,6 +61,7 @@ func (c *PullLogsClient) PullLogs(topicId string, partitionId int, size int, sta
 		PartitionId:  partitionId,
 		StartTime:    startTimeValue,
 		EndTime:      endTime,
+		Query:        query,
 	}
 	bodyBytes, err := json.Marshal(pullReq)
 	if err != nil {
@@ -121,9 +128,10 @@ func (c *PullLogsClient) PullLogs(topicId string, partitionId int, size int, sta
 	return respBytes, nil
 }
 
-// PullLogsAndParse pulls and parses logs and outputs proto text format
-func (c *PullLogsClient) PullLogsAndParse(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64) (*PullLogResponse, error) {
-	respBytes, err := c.PullLogs(topicId, partitionId, size, startTime, offset, endTime)
+// PullLogsAndParse pulls and parses logs and outputs proto text format.
+// query is an optional DSL pre-filter expression; pass "" to disable server-side filtering.
+func (c *PullLogsClient) PullLogsAndParse(topicId string, partitionId int, size int, startTime *int64, offset int64, endTime *int64, query string) (*PullLogResponse, error) {
+	respBytes, err := c.PullLogs(topicId, partitionId, size, startTime, offset, endTime, query)
 	if err != nil {
 		return nil, err
 	}

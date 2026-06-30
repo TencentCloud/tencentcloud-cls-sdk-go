@@ -51,6 +51,12 @@ type ConsumerOption struct {
 	ConsumerGroupTimeout int
 	StartTime            int64
 	EndTime              int64
+	// Query is the optional DSL pre-filter expression sent with every PullLogs request,
+	// e.g. log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed"))).
+	// Only logs that match the expression are returned by the server. Leave empty to
+	// disable server-side filtering. See:
+	// https://cloud.tencent.com/document/product/614/37908
+	Query                string
 }
 
 // NewConsumerWorker create consumer Worker
@@ -285,6 +291,7 @@ func (cw *ConsumerWorker) getOrCreatePartitionWorker(topicID string, partitionID
 		cw.ConsumerOption.OffsetEndTime,
 		cw.ConsumerOption.StartTime,
 		cw.ConsumerOption.EndTime,
+		cw.ConsumerOption.Query,
 	)
 
 	cw.PartitionWorkers[key] = worker
