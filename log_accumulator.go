@@ -60,9 +60,11 @@ func (accumulator *Accumulator) createNewProducerBatch(logType interface{}, call
 	if item, ok := logType.(*Log); ok {
 		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, item, generatePackageId(accumulator.producerHash, accumulator.batchID))
 		accumulator.logTopicData[topicId] = newProducerBatch
+		asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, newProducerBatch.totalDataSize)
 	} else if logList, ok := logType.([]*Log); ok {
 		newProducerBatch := NewProducerBatch(topicId, accumulator.producerConfig, callback, logList, generatePackageId(accumulator.producerHash, accumulator.batchID))
 		accumulator.logTopicData[topicId] = newProducerBatch
+		asyncAtomic.AddInt64(&accumulator.producer.producerLogGroupSize, newProducerBatch.totalDataSize)
 	}
 }
 
