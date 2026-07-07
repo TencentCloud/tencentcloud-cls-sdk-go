@@ -38,8 +38,8 @@ func GetLogSizeCalculate(log *Log) (int, error) {
 	count := len(logContent)
 
 	for i := 0; i < count; i++ {
-		if len(*logContent[i].Value) > 1*1024*1024 {
-			return 0, fmt.Errorf("content value can not be than 1M")
+		if len(*logContent[i].Value) > 5*1024*1024 {
+			return 0, fmt.Errorf("content value can not be than 5M")
 		}
 		sizeInBytes += len(*logContent[i].Value)
 		sizeInBytes += len(*logContent[i].Key)
