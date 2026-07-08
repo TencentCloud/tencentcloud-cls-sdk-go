@@ -27,6 +27,7 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 		Timeout:      config.Timeout,
 		IdleConn:     config.IdleConn,
 		CompressType: config.CompressType,
+		Resolver:     config.Resolver,
 	})
 	if err != nil {
 		return nil, err

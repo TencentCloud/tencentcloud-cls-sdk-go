@@ -25,6 +25,9 @@ type AsyncProducerClientConfig struct {
 	IdleConn            int
 	CompressType        string
 	HostName            string
+	// Resolver 可选：设置后每次发送前会动态解析 Host（如通过北极星服务发现）。
+	// 若 Resolver 不为 nil，Endpoint 可以为空，或作为兜底使用。
+	Resolver EndpointResolver
 }
 
 // GetDefaultAsyncProducerClientConfig 获取默认的Producer Config

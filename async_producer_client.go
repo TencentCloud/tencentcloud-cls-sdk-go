@@ -36,6 +36,7 @@ func NewAsyncProducerClient(asyncProducerClientConfig *AsyncProducerClientConfig
 			SecretKEY:   asyncProducerClientConfig.AccessKeySecret,
 			SecretToken: asyncProducerClientConfig.AccessToken,
 		},
+		Resolver: asyncProducerClientConfig.Resolver,
 	})
 	if err != nil {
 		return nil, errors.New(err.Message)

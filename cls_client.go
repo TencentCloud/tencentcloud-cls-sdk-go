@@ -30,12 +30,40 @@ type Options struct {
 	IdleConn     int
 	CompressType string
 	Credentials  Credentials
+	// Resolver 可选。若不为 nil，则每次发送请求前会调用其 Resolve 方法
+	// 动态解析实际使用的 Host（如通过北极星服务发现）。
+	// 请求完成后会通过返回的 Reporter 回报调用结果，供负载均衡/熔断使用。
+	Resolver EndpointResolver
 }
 
 type Credentials struct {
 	SecretID    string
 	SecretKEY   string
 	SecretToken string
+}
+
+// EndpointResolver 用于每次发送前动态解析出真实的目标地址。
+// 实现方（例如北极星 PolarisResolver）在 Resolve 中执行服务发现，
+// 返回本次请求应使用的 Host 以及一个 Reporter 用于请求结束后上报调用结果。
+type EndpointResolver interface {
+	// Resolve 返回本次请求要使用的 Endpoint。
+	// 返回的 Reporter 可能为 nil，此时表示不需要上报。
+	Resolve(ctx context.Context) (endpoint *ResolvedEndpoint, reporter Reporter, err error)
+}
+
+// ResolvedEndpoint 表示一次解析出的目标地址。
+type ResolvedEndpoint struct {
+	// Host 形如 "host:port" 或 "domain"；不需要带 scheme 前缀。
+	Host string
+	// Scheme 可选：http 或 https。为空时沿用 Options.Scheme。
+	Scheme string
+}
+
+// Reporter 用于将一次请求的调用结果上报回 Resolver（如北极星）。
+type Reporter interface {
+	// Report 上报调用结果。err 为 nil 表示成功，非 nil 表示失败。
+	// statusCode 为 HTTP 状态码；若发生网络错误无 HTTP 响应，可传 0。
+	Report(err error, statusCode int, cost time.Duration)
 }
 
 func (options *Options) withTimeoutDefault() {
@@ -51,7 +79,7 @@ func (options *Options) withIdleConnDefault() {
 }
 
 func (options *Options) validateOptions() *CLSError {
-	if options.Host == "" {
+	if options.Host == "" && options.Resolver == nil {
 		return NewError(-1, "", MISSING_HOST, errors.New("host cannot be empty"))
 	}
 
@@ -185,13 +213,31 @@ func (client *CLSClient) deflateCompress(body []byte, params url.Values, urlRepo
 
 // Send cls实际发送接口
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
+	// 动态解析 Host（如通过北极星服务发现）
+	host := client.options.Host
+	scheme := client.options.Scheme
+	var reporter Reporter
+	if client.options.Resolver != nil {
+		endpoint, rp, err := client.options.Resolver.Resolve(ctx)
+		if err != nil {
+			return NewError(-1, "", BAD_REQUEST, err)
+		}
+		if endpoint != nil && endpoint.Host != "" {
+			host = endpoint.Host
+		}
+		if endpoint != nil && endpoint.Scheme != "" {
+			scheme = endpoint.Scheme
+		}
+		reporter = rp
+	}
+
 	params := url.Values{"topic_id": []string{topicId}}
-	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
+	headers := url.Values{"Host": {host}, "Content-Type": {"application/x-protobuf"}}
 
 	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
 		logUri, params, headers, 300)
-	
-	urlReport := fmt.Sprintf("%s://%s/structuredlog", client.options.Scheme, client.options.Host)
+
+	urlReport := fmt.Sprintf("%s://%s/structuredlog", scheme, host)
 	var logGroupList LogGroupList
 	for _, item := range group {
 		logGroupList.LogGroupList = append(logGroupList.LogGroupList, item)
@@ -215,7 +261,7 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 		}
 	}
 
-	req.Header.Add("Host", client.options.Host)
+	req.Header.Add("Host", host)
 	req.Header.Add("Content-Type", "application/x-protobuf")
 	if client.options.Credentials.SecretID != "" && client.options.Credentials.SecretKEY != "" {
 		req.Header.Add("Authorization", authorization)
@@ -225,8 +271,14 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
 	}
 	req = req.WithContext(ctx)
+
+	start := time.Now()
 	resp, err := client.client.Do(req)
+	cost := time.Since(start)
 	if err != nil {
+		if reporter != nil {
+			reporter.Report(err, 0, cost)
+		}
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
 	}
 	defer resp.Body.Close()
@@ -234,26 +286,48 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 	if resp.StatusCode == 400 || resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
 		v, err := io.ReadAll(resp.Body)
 		if err != nil {
+			if reporter != nil {
+				reporter.Report(errors.New("bad request"), resp.StatusCode, cost)
+			}
 			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
 		}
 		var message ErrorMessage
 		if err := json.Unmarshal(v, &message); err != nil {
+			if reporter != nil {
+				reporter.Report(errors.New("bad request"), resp.StatusCode, cost)
+			}
 			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
+		}
+		if reporter != nil {
+			// 4xx 通常是客户端问题（鉴权、参数），不作为服务端故障上报为失败
+			reporter.Report(nil, resp.StatusCode, cost)
 		}
 		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), message.Code, errors.New(message.Message))
 	}
 	// 200 直接返回
 	if resp.StatusCode == 200 {
+		if reporter != nil {
+			reporter.Report(nil, resp.StatusCode, cost)
+		}
 		return nil
 	}
 
 	// 如果被服务端写入限速
 	if resp.StatusCode == 429 {
+		if reporter != nil {
+			reporter.Report(errors.New("write quota exceed"), resp.StatusCode, cost)
+		}
 		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), WRITE_QUOTA_EXCEED, errors.New("write quota exceed"))
 	}
 	// 如果是服务端错误
 	if resp.StatusCode >= 500 {
+		if reporter != nil {
+			reporter.Report(errors.New("server internal error"), resp.StatusCode, cost)
+		}
 		return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), INTERNAL_SERVER_ERROR, errors.New("server internal error"))
+	}
+	if reporter != nil {
+		reporter.Report(errors.New("unknown error"), resp.StatusCode, cost)
 	}
 	return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), UNKNOWN_ERROR, errors.New("unknown error"))
 }

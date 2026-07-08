@@ -116,6 +116,69 @@ func (callback *Callback) Fail(result *tencentcloud_cls_sdk_go.Result) {
 protoc --gofast_out=. cls.proto
 ```
 
+### 使用北极星（Polaris）做服务发现
+
+SDK 支持将 CLS 上报的目标 Endpoint 通过北极星 [polaris-go v2](https://git.woa.com/polaris/polaris-go) 做服务发现与负载均衡。
+
+#### 1. 自定义 `Namespace + Service`（`Endpoint` 作为兜底）
+
+```go
+import (
+    cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
+    "time"
+)
+
+func main() {
+    // 创建北极星 Resolver
+    resolver, err := cls.NewPolarisResolver(cls.PolarisResolverConfig{
+        Namespace:    "Production",             // 必填：北极星命名空间
+        Service:      "cls-gateway",            // 必填：北极星服务名
+        Scheme:       "http",                   // 可选：默认 http
+        FallbackHost: "ap-guangzhou.cls.tencentcs.com", // 可选：服务发现失败时的兜底地址
+        Timeout:      500 * time.Millisecond,   // 可选：单次服务发现超时
+        LbPolicy:     "weightedRandom",         // 可选：负载均衡策略
+        // EnableReport: true,                  // 可选：默认 false（不上报调用结果）；开启后会将请求结果回报北极星
+    })
+    if err != nil {
+        panic(err)
+    }
+    defer resolver.Close()
+
+    producerConfig := cls.GetDefaultAsyncProducerClientConfig()
+    // 使用北极星做服务发现时，Endpoint 可以留空；也可作为兜底
+    producerConfig.Endpoint = ""
+    producerConfig.AccessKeyID = "xxx"
+    producerConfig.AccessKeySecret = "yyy"
+    producerConfig.Resolver = resolver
+
+    producer, err := cls.NewAsyncProducerClient(producerConfig)
+    if err != nil {
+        panic(err)
+    }
+    producer.Start()
+    // ... 正常调用 producer.SendLog / SendLogList
+}
+```
+
+同步 Producer 的用法完全类似，只需要设置 `SyncProducerClientConfig.Resolver = resolver`。
+
+#### 2. 工作机制
+
+- 每次向 CLS 发送前，SDK 会调用 `Resolver.Resolve(ctx)` 获取一个由北极星选出的可用实例。
+- **调用结果上报默认关闭**：需将 `PolarisResolverConfig.EnableReport` 设为 `true` 才会在请求结束后通过 `Reporter.Report(err, statusCode, cost)` 把调用结果（成功/失败、耗时、状态码）回报给北极星，用于故障剔除、负载均衡与熔断。
+- 状态码约定（仅在开启上报时生效）：`2xx / 4xx` 视为调用成功（4xx 属于客户端错误，不影响实例健康度）；`5xx` 与网络错误视为失败。
+- 如果 `PolarisResolverConfig.FallbackHost` 非空，则在北极星服务发现失败时会兜底使用该地址。
+
+#### 3. 自定义 Resolver
+
+如果你不使用北极星，也可以自己实现 `cls.EndpointResolver` 接口，完成任意自定义的服务发现逻辑：
+
+```go
+type EndpointResolver interface {
+    Resolve(ctx context.Context) (endpoint *ResolvedEndpoint, reporter Reporter, err error)
+}
+```
+
 ### feature
 
 
