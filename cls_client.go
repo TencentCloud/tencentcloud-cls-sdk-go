@@ -3,7 +3,6 @@ package tencentcloud_cls_sdk_go
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/pierrec/lz4"
@@ -25,7 +23,6 @@ const (
 
 type Options struct {
 	Host         string
-	Scheme       string
 	Timeout      int
 	IdleConn     int
 	CompressType string
@@ -55,9 +52,9 @@ func (options *Options) validateOptions() *CLSError {
 		return NewError(-1, "", MISSING_HOST, errors.New("host cannot be empty"))
 	}
 
-	//if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
-	//	return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
-	//}
+	if options.Credentials.SecretID == "" || options.Credentials.SecretKEY == "" {
+		return NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("SecretID or SecretKEY cannot be empty"))
+	}
 
 	if options.CompressType == "" {
 		options.CompressType = "lz4"
@@ -94,36 +91,20 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 	if err := options.validateOptions(); err != nil {
 		return nil, err
 	}
-	// 确保Host包含正确的协议头
-	if strings.HasPrefix(options.Host, "http://") {
-		options.Scheme = "http"
-		options.Host = strings.TrimPrefix(options.Host, "http://")
-	} else if strings.HasPrefix(options.Host, "https://") {
-		options.Scheme = "https"
-		options.Host = strings.TrimPrefix(options.Host, "https://")
-	} else {
-		options.Scheme = "http"
-	}
 	client.options = options
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   time.Duration(options.Timeout) * time.Millisecond,
-			KeepAlive: 300 * time.Second,
-		}).DialContext,
-		MaxIdleConns:        options.IdleConn,
-		MaxIdleConnsPerHost: options.IdleConn,
-		MaxConnsPerHost:     options.IdleConn,
-		IdleConnTimeout:     time.Duration(300) * time.Second,
-	}
-	if options.Scheme == "https" {
-		transport.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
 	client.client = &http.Client{
-		Transport: transport,
-		Timeout:   time.Duration(options.Timeout) * time.Millisecond,
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   time.Duration(options.Timeout) * time.Millisecond,
+				KeepAlive: 300 * time.Second,
+			}).DialContext,
+			MaxIdleConns:        options.IdleConn,
+			MaxIdleConnsPerHost: options.IdleConn,
+			MaxConnsPerHost:     options.IdleConn,
+			IdleConnTimeout:     time.Duration(300) * time.Second,
+		},
+		Timeout: time.Duration(options.Timeout) * time.Millisecond,
 	}
 	return client, nil
 }
@@ -168,30 +149,15 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 	return req, nil
 }
 
-func (client *CLSClient) deflateCompress(body []byte, params url.Values, urlReport string) (*http.Request, *CLSError) {
-	data, err := DeflateCompress(body)
-	if err != nil {
-		return nil, NewError(-1, "", BAD_REQUEST, err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, NewError(-1, "", BAD_REQUEST, err)
-	}
-	req.URL.RawQuery = params.Encode()
-	req.Header.Add("x-cls-compress-type", "deflate")
-	return req, nil
-}
-
 // Send cls实际发送接口
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
-
 	authorization := signature(client.options.Credentials.SecretID, client.options.Credentials.SecretKEY, http.MethodPost,
 		logUri, params, headers, 300)
-	
-	urlReport := fmt.Sprintf("%s://%s/structuredlog", client.options.Scheme, client.options.Host)
+
+	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
+
 	var logGroupList LogGroupList
 	for _, item := range group {
 		logGroupList.LogGroupList = append(logGroupList.LogGroupList, item)
@@ -205,10 +171,6 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 		if req, clsErr = client.zstdCompress(body, params, urlReport); clsErr != nil {
 			return clsErr
 		}
-	} else if client.options.CompressType == "deflate" {
-		if req, clsErr = client.deflateCompress(body, params, urlReport); clsErr != nil {
-			return clsErr
-		}
 	} else {
 		if req, clsErr = client.lz4Compress(body, params, urlReport); clsErr != nil {
 			return clsErr
@@ -217,10 +179,9 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	req.Header.Add("Host", client.options.Host)
 	req.Header.Add("Content-Type", "application/x-protobuf")
-	if client.options.Credentials.SecretID != "" && client.options.Credentials.SecretKEY != "" {
-		req.Header.Add("Authorization", authorization)
-	}
+	req.Header.Add("Authorization", authorization)
 	req.Header.Add("User-Agent", getUserAgent())
+
 	if client.options.Credentials.SecretToken != "" {
 		req.Header.Add("X-Cls-Token", client.options.Credentials.SecretToken)
 	}
@@ -230,8 +191,9 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 		return NewError(-1, "--No RequestId--", BAD_REQUEST, err)
 	}
 	defer resp.Body.Close()
-	// 400, 401, 403, 404, 413 直接返回错误
-	if resp.StatusCode == 400 || resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
+
+	// 401, 403, 404, 413 直接返回错误
+	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 413 {
 		v, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return NewError(int32(resp.StatusCode), resp.Header.Get("X-Cls-Requestid"), BAD_REQUEST, errors.New("bad request"))
