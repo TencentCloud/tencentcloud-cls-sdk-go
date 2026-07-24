@@ -17,9 +17,9 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 	c := new(SyncProducerClient)
 	c.validateConfig(config)
 	c.config = config
-	client, err := NewCLSClient(&Options{
+	options := &Options{
 		Host: config.Endpoint,
-		Credentials: Credentials{
+		Cred: &DefaultCredential{
 			SecretID:    config.AccessKeyID,
 			SecretKEY:   config.AccessKeySecret,
 			SecretToken: config.AccessToken,
@@ -27,7 +27,11 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 		Timeout:      config.Timeout,
 		IdleConn:     config.IdleConn,
 		CompressType: config.CompressType,
-	})
+	}
+	if config.Cred != nil {
+		options.Cred = config.Cred
+	}
+	client, err := NewCLSClient(options)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +103,15 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 // ResetSecretToken reset temporary secret info
 func (c *SyncProducerClient) ResetSecretToken(secretID string, secretKEY string, secretToken string) error {
 	err := c.client.ResetSecretToken(secretID, secretKEY, secretToken)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ResetCredential reset credential info
+func (c *SyncProducerClient) ResetCredential(credential Credential) error {
+	err := c.client.ResetCredential(credential)
 	if err != nil {
 		return err
 	}

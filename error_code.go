@@ -5,6 +5,7 @@ const MISSING_HOST = "MissingHost"
 const MISS_ACCESS_SECRET = "MissAccessKeyId"
 const MISS_ACCESS_KEY_ID = "MissAccessKeyId"
 const MISS_ACCESS_TOKEN = "MissAccessKeyId"
+const MISS_CREDENTIAL = "MissCredential"
 
 const WRITE_QUOTA_EXCEED = "WriteQuotaExceed"
 const INTERNAL_SERVER_ERROR = "InternalError"
