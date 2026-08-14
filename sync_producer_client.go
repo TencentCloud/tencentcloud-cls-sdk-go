@@ -23,6 +23,7 @@ func NewSyncProducerClient(config *SyncProducerClientConfig) (*SyncProducerClien
 			SecretID:    config.AccessKeyID,
 			SecretKEY:   config.AccessKeySecret,
 			SecretToken: config.AccessToken,
+			Uin:         config.Uin,
 		},
 		Timeout:      config.Timeout,
 		IdleConn:     config.IdleConn,

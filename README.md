@@ -46,6 +46,56 @@ endpoint填写请参考[可用地域](https://cloud.tencent.com/document/product
 
 AccessKeyID和AccessKeySecret为云API密钥，密钥信息获取请前往[密钥获取](https://console.cloud.tencent.com/cam/capi)。并请确保密钥关联的账号具有相应的[SDK上传日志权限](https://cloud.tencent.com/document/product/614/68374#.E4.BD.BF.E7.94.A8-api-.E4.B8.8A.E4.BC.A0.E6.95.B0.E6.8D.AE)
 
+### 弱鉴权（免密）上报
+
+除云 API 密钥外，SDK 还支持**弱鉴权（免密）**上报：无需 AccessKeyID / AccessKeySecret，只需填写账号 `Uin` 即可上报日志。
+
+#### 前置条件
+
+**目标主题必须开启「匿名上传」中的「API/SDK 上传日志」**，否则服务端一律返回 `401 Unauthorized`。
+
+#### 使用方式
+
+`Uin` 与 `AccessKeyID` + `AccessKeySecret` **二选一必填**，不填任何一种会在创建 client 时直接报错。
+
+```go
+// 异步 producer
+producerConfig := tencentcloud_cls_sdk_go.GetDefaultAsyncProducerClientConfig()
+producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+producerConfig.Uin = "100012345678" // 账号 Uin，替代 AccessKeyID / AccessKeySecret
+producerInstance, err := tencentcloud_cls_sdk_go.NewAsyncProducerClient(producerConfig)
+```
+
+```go
+// 同步 producer
+config := tencentcloud_cls_sdk_go.GetDefaultSyncProducerClientConfig()
+config.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+config.Uin = "100012345678"
+client, err := tencentcloud_cls_sdk_go.NewSyncProducerClient(config)
+```
+
+#### 鉴权模式判定规则
+
+SDK 依据凭证的填写情况自动推断鉴权模式，无需额外开关：
+
+| AccessKeyID + AccessKeySecret | Uin | 鉴权模式 |
+| --- | --- | --- |
+| 已填写 | 未填写 | 强鉴权（云 API 签名） |
+| 未填写 | 已填写 | **弱鉴权（免密）** |
+| 已填写 | 已填写 | 强鉴权，`Uin` 被忽略 |
+| 未填写 | 未填写 | 创建 client 时报错 `MissAccessKeyId` |
+
+其他约束：
+
+- `Uin` 必须为纯数字字符串，否则创建 client 时报错 `InvalidUin`。
+- **AccessKeyID / AccessKeySecret 优先**：两者同时填写时走强鉴权，避免安全级别被静默降低。
+- 弱鉴权模式下调用 `ResetSecretToken()` 不会生效（会打印一条 warn 日志），因为该模式不使用密钥。
+
+#### 注意事项
+
+- 弱鉴权仅用于**日志上传**，日志消费（`consumer`）仍必须使用 AccessKeyID / AccessKeySecret。
+- 弱鉴权只保证传输防篡改，**不提供身份真实性校验**，安全等级等同匿名写入。请仅在可信网络环境中使用，敏感业务请使用云 API 密钥。
+
 ### Demo
 
 ```
@@ -127,6 +177,7 @@ func (callback *Callback) Fail(result *tencentcloud_cls_sdk_go.Result) {
 | MaxReservedAttempts | Int    | 每个Batch每次被尝试发送都对应着一个Attemp，此参数用来控制返回给用户的 attempt 个数，默认只保留最近的 11 次 attempt 信息。<br/>该参数越大能让您追溯更多的信息，但同时也会消耗更多的内存。 |
 | BaseRetryBackoffMs  | Int64  | 首次重试的退避时间，默认为 100 毫秒。 client采样指数退避算法，第 N 次重试的计划等待时间为 baseRetryBackoffMs * 2^(N-1)。 |
 | MaxRetryBackoffMs   | Int64  | 重试的最大退避时间，默认为 50 秒。                           |
+| Uin                 | String | 弱鉴权（免密）账号 ID，与 AccessKeyID + AccessKeySecret 二选一必填。详见「弱鉴权（免密）上报」。 |
 
 
 ### generate cls log

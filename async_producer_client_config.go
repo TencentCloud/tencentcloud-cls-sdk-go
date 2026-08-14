@@ -20,11 +20,14 @@ type AsyncProducerClientConfig struct {
 	AccessKeyID         string
 	AccessKeySecret     string
 	AccessToken         string
-	Source              string
-	Timeout             int
-	IdleConn            int
-	CompressType        string
-	HostName            string
+	// Uin 弱鉴权（免密）账号 ID，与 AccessKeyID/AccessKeySecret 二选一填写。
+	// 两者同时填写时以 AccessKeyID/AccessKeySecret 为准（走强鉴权），Uin 被忽略。
+	Uin          string
+	Source       string
+	Timeout      int
+	IdleConn     int
+	CompressType string
+	HostName     string
 }
 
 // GetDefaultAsyncProducerClientConfig 获取默认的Producer Config
