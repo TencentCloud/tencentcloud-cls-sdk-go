@@ -1,206 +1,318 @@
-Tencent CLS Log SDK
+# Tencent CLS Log SDK for Go
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/tencentcloud/tencentcloud-cls-sdk-go.svg)](https://pkg.go.dev/github.com/tencentcloud/tencentcloud-cls-sdk-go)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.17-00ADD8.svg)](https://go.dev/)
+
+**English** | [简体中文](./README_CN.md)
+
+The official Go SDK for [Tencent Cloud Log Service (CLS)](https://cloud.tencent.com/product/cls), providing **log upload** and **log consumption** capabilities out of the box.
+
 ---
 
-## 一、SDK 功能说明
+## Table of Contents
 
-`tencentcloud-cls-sdk-go` 是腾讯云日志服务（CLS）官方 Go SDK，提供**日志上传**与**日志消费**两大能力：
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Endpoints & Regions](#endpoints--regions)
+- [Authentication](#authentication)
+  - [Strong Auth (API Key)](#strong-auth-api-key)
+  - [Weak Auth (Anonymous / Uin only)](#weak-auth-anonymous--uin-only)
+  - [Refreshing Temporary Credentials](#refreshing-temporary-credentials)
+- [Producer](#producer)
+  - [Async Producer](#async-producer)
+  - [Sync Producer](#sync-producer)
+  - [Async Producer Config Reference](#async-producer-config-reference)
+- [Consumer](#consumer)
+- [Compression](#compression)
+- [Regenerate Protobuf](#regenerate-protobuf)
+- [License](#license)
 
-- **日志上传**：异步 / 同步生产者，支持攒批聚合、失败重试、回调通知、多种压缩（lz4 / zstd / deflate），开箱即用。
-- **日志消费**：基于消费组（Consumer Group）的多分区并发消费、自动 offset 持久化与断点续传，业务侧只需实现一个 `Processor` 接口即可。
+---
 
-通用特性：
-- 支持 `AccessKeyID + AccessKeySecret` 永久密钥与 `AccessToken` 临时密钥，并提供运行时刷新。
-- 支持按地域自动拼接 endpoint。
-- 失败重试：429 / 5xx 等可恢复错误自动指数退避；4xx 类客户端错误直接失败。
-- 高性能：充分利用 Go 协程并发能力，单实例可支撑高吞吐上报。
+## Features
+
+- **Log Upload**: async / sync producer, batching & aggregation, retry, callbacks, multiple compression codecs (`lz4` / `zstd` / `deflate`).
+- **Log Consumption**: consumer group based multi-partition concurrent consumption, automatic offset persistence and resume-from-checkpoint.
+- **Auth**: supports both permanent credentials (`AccessKeyID` + `AccessKeySecret`) and temporary credentials (`AccessToken`); also supports **anonymous (Uin only)** upload.
+- **Endpoint**: automatic endpoint composition by `Region` + `NetworkType`.
+- **Resilience**: exponential backoff retry on retryable errors (429 / 5xx); fast-fail on 4xx client errors.
+- **High Throughput**: fully leverages Go's concurrency; a single instance can sustain high ingestion QPS.
+
+## Installation
+
+Requires Go **1.17+**.
 
 ```bash
 go get github.com/tencentcloud/tencentcloud-cls-sdk-go
 ```
 
----
-
-## 二、上传 SDK 说明
-
-### USAGE
-
-```
-go get github.com/tencentcloud/tencentcloud-cls-sdk-go
-```
-
-### 为什么要使用CLS Log SDK
-
-- 异步发送：发送日志立即返回，无须等待，支持传入callback function。
-- 优雅关闭：通过调用close方法，producer会将所有其缓存的数据进行发送，防止日志丢失。
-- 感知每一条日志的成功状态： 用户可以自定义CallBack方法的实现，监控每一条日志的状态
-- 使用简单： 通过简单配置，就可以实现复杂的日志上传聚合、失败重试等逻辑
-- 失败重试： 429、500 等服务端错误，都会进行重试
-- 高性能： 得益于go语言的高并发能力
-
-
-### CLS Host
-
-endpoint填写请参考[可用地域](https://cloud.tencent.com/document/product/614/18940#.E5.9F.9F.E5.90.8D)中 **API上传日志** Tab中的域名（也可以选择地域与网络环境类型自动生成。如：Guangzhou，Extranet）![image-20230403191435319](https://github.com/TencentCloud/tencentcloud-cls-sdk-js/blob/main/demo.png)
-
-### 密钥信息
-
-AccessKeyID和AccessKeySecret为云API密钥，密钥信息获取请前往[密钥获取](https://console.cloud.tencent.com/cam/capi)。并请确保密钥关联的账号具有相应的[SDK上传日志权限](https://cloud.tencent.com/document/product/614/68374#.E4.BD.BF.E7.94.A8-api-.E4.B8.8A.E4.BC.A0.E6.95.B0.E6.8D.AE)
-
-### 弱鉴权（免密）上报
-
-除云 API 密钥外，SDK 还支持**弱鉴权（免密）**上报：无需 AccessKeyID / AccessKeySecret，只需填写账号 `Uin` 即可上报日志。
-
-#### 前置条件
-
-**目标主题必须开启「匿名上传」中的「API/SDK 上传日志」**，否则服务端一律返回 `401 Unauthorized`。
-
-#### 使用方式
-
-`Uin` 与 `AccessKeyID` + `AccessKeySecret` **二选一必填**，不填任何一种会在创建 client 时直接报错。
+## Quick Start
 
 ```go
-// 异步 producer
-producerConfig := tencentcloud_cls_sdk_go.GetDefaultAsyncProducerClientConfig()
-producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
-producerConfig.Uin = "100012345678" // 账号 Uin，替代 AccessKeyID / AccessKeySecret
-producerInstance, err := tencentcloud_cls_sdk_go.NewAsyncProducerClient(producerConfig)
-```
-
-```go
-// 同步 producer
-config := tencentcloud_cls_sdk_go.GetDefaultSyncProducerClientConfig()
-config.Endpoint = "ap-guangzhou.cls.tencentcs.com"
-config.Uin = "100012345678"
-client, err := tencentcloud_cls_sdk_go.NewSyncProducerClient(config)
-```
-
-#### 鉴权模式判定规则
-
-SDK 依据凭证的填写情况自动推断鉴权模式，无需额外开关：
-
-| AccessKeyID + AccessKeySecret | Uin | 鉴权模式 |
-| --- | --- | --- |
-| 已填写 | 未填写 | 强鉴权（云 API 签名） |
-| 未填写 | 已填写 | **弱鉴权（免密）** |
-| 已填写 | 已填写 | 强鉴权，`Uin` 被忽略 |
-| 未填写 | 未填写 | 创建 client 时报错 `MissAccessKeyId` |
-
-其他约束：
-
-- `Uin` 必须为纯数字字符串，否则创建 client 时报错 `InvalidUin`。
-- **AccessKeyID / AccessKeySecret 优先**：两者同时填写时走强鉴权，避免安全级别被静默降低。
-- 弱鉴权模式下调用 `ResetSecretToken()` 不会生效（会打印一条 warn 日志），因为该模式不使用密钥。
-
-#### 注意事项
-
-- 弱鉴权仅用于**日志上传**，日志消费（`consumer`）仍必须使用 AccessKeyID / AccessKeySecret。
-- 弱鉴权只保证传输防篡改，**不提供身份真实性校验**，安全等级等同匿名写入。请仅在可信网络环境中使用，敏感业务请使用云 API 密钥。
-
-### Demo
-
-```
 package main
 
 import (
-	"fmt"
-	"github.com/tencentcloud/tencentcloud-cls-sdk-go"
-	"sync"
-	"time"
+    "fmt"
+    "sync"
+    "time"
+
+    cls "github.com/tencentcloud/tencentcloud-cls-sdk-go"
 )
 
 func main() {
-	producerConfig := tencentcloud_cls_sdk_go.GetDefaultAsyncProducerClientConfig()
-	producerConfig.Endpoint = "ap-guangzhou.cls.tencentcs.com"
-	producerConfig.AccessKeyID = ""
-	producerConfig.AccessKeySecret = ""
-	topicId := ""
-	producerInstance, err := tencentcloud_cls_sdk_go.NewAsyncProducerClient(producerConfig)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+    cfg := cls.GetDefaultAsyncProducerClientConfig()
+    cfg.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+    cfg.AccessKeyID = "<YourSecretID>"
+    cfg.AccessKeySecret = "<YourSecretKey>"
 
-        // 异步发送程序，需要启动
-	producerInstance.Start()
-	
-	var m sync.WaitGroup
-	callBack := &Callback{}
-	for i := 0; i < 10; i++ {
-		m.Add(1)
-		go func() {
-			defer m.Done()
-			for i := 0; i < 1000; i++ {
-				log := tencentcloud_cls_sdk_go.NewCLSLog(time.Now().Unix(), map[string]string{"content": "hello world| I'm from Beijing", "content2": fmt.Sprintf("%v", i)})
-				err = producerInstance.SendLog(topicId, log, callBack)
-				if err != nil {
-					fmt.Println(err)
-					continue
-				}
-			}
-		}()
-	}
-	m.Wait()
-	producerInstance.Close(60000)
+    topicID := "<YourTopicID>"
+
+    producer, err := cls.NewAsyncProducerClient(cfg)
+    if err != nil {
+        panic(err)
+    }
+    producer.Start()
+
+    var wg sync.WaitGroup
+    cb := &Callback{}
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for j := 0; j < 1000; j++ {
+                log := cls.NewCLSLog(time.Now().Unix(), map[string]string{
+                    "content":  "hello world",
+                    "content2": fmt.Sprintf("%d", j),
+                })
+                if err := producer.SendLog(topicID, log, cb); err != nil {
+                    fmt.Println(err)
+                }
+            }
+        }()
+    }
+    wg.Wait()
+    _ = producer.Close(60000)
 }
 
-type Callback struct {
+type Callback struct{}
+
+func (c *Callback) Success(r *cls.Result) {
+    for _, a := range r.GetReservedAttempts() {
+        fmt.Printf("%+v\n", a)
+    }
 }
 
-func (callback *Callback) Success(result *tencentcloud_cls_sdk_go.Result) {
-	attemptList := result.GetReservedAttempts()
-	for _, attempt := range attemptList {
-		fmt.Printf("%+v \n", attempt)
-	}
-}
-
-func (callback *Callback) Fail(result *tencentcloud_cls_sdk_go.Result) {
-	fmt.Println(result.IsSuccessful())
-	fmt.Println(result.GetErrorCode())
-	fmt.Println(result.GetErrorMessage())
-	fmt.Println(result.GetReservedAttempts())
-	fmt.Println(result.GetRequestId())
-	fmt.Println(result.GetTimeStampMs())
+func (c *Callback) Fail(r *cls.Result) {
+    fmt.Println(r.IsSuccessful(), r.GetErrorCode(), r.GetErrorMessage(), r.GetRequestId())
 }
 ```
 
-### 配置参数详解
+## Endpoints & Regions
 
-| 参数                | 类型   | 描述                                                         |
-| ------------------- | ------ | ------------------------------------------------------------ |
-| TotalSizeLnBytes    | Int64  | 实例能缓存的日志大小上限，默认为 100MB。       |
-| MaxSendWorkerCount    | Int64  | client能并发的最多"goroutine"的数量，默认为50 |
-| MaxBlockSec         | Int    | 如果client可用空间不足，调用者在 send 方法上的最大阻塞时间，默认为 60 秒。<br/>如果超过这个时间后所需空间仍无法得到满足，send 方法会抛出TimeoutException。如果将该值设为0，当所需空间无法得到满足时，send 方法会立即抛出 TimeoutException。如果您希望 send 方法一直阻塞直到所需空间得到满足，可将该值设为负数。 |
-| MaxBatchSize        | Int64  | 当一个Batch中缓存的日志大小大于等于 batchSizeThresholdInBytes 时，该 batch 将被发送，默认为 512 KB，最大可设置成 5MB。 |
-| MaxBatchCount       | Int    | 当一个Batch中缓存的日志条数大于等于 batchCountThreshold 时，该 batch 将被发送，默认为 4096，最大可设置成 40960。 |
-| LingerMs            | Int64  | Batch从创建到可发送的逗留时间，默认为 2 秒，最小可设置成 100 毫秒。 |
-| Retries             | Int    | 如果某个Batch首次发送失败，能够对其重试的次数，默认为 10 次。<br/>如果 retries 小于等于 0，该 ProducerBatch 首次发送失败后将直接进入失败队列。 |
-| MaxReservedAttempts | Int    | 每个Batch每次被尝试发送都对应着一个Attemp，此参数用来控制返回给用户的 attempt 个数，默认只保留最近的 11 次 attempt 信息。<br/>该参数越大能让您追溯更多的信息，但同时也会消耗更多的内存。 |
-| BaseRetryBackoffMs  | Int64  | 首次重试的退避时间，默认为 100 毫秒。 client采样指数退避算法，第 N 次重试的计划等待时间为 baseRetryBackoffMs * 2^(N-1)。 |
-| MaxRetryBackoffMs   | Int64  | 重试的最大退避时间，默认为 50 秒。                           |
-| Uin                 | String | 弱鉴权（免密）账号 ID，与 AccessKeyID + AccessKeySecret 二选一必填。详见「弱鉴权（免密）上报」。 |
+You may either fill `Endpoint` directly or use `SetEndpointByRegionAndNetworkType(region, networkType)` to compose it automatically.
 
-
-### generate cls log
-
+```go
+cfg := cls.GetDefaultSyncProducerClientConfig()
+cfg.SetEndpointByRegionAndNetworkType(cls.Shanghai, cls.Intranet)
+// or
+cfg.Endpoint = "ap-guangzhou.cls.tencentcs.com"
 ```
+
+**Network types**
+
+| Constant | Value | Description |
+| --- | --- | --- |
+| `cls.Intranet` | `cls.tencentyun.com` | Private network (VPC) |
+| `cls.Extranet` | `cls.tencentcs.com` | Public Internet |
+
+**Supported regions** (see [Available Regions](https://cloud.tencent.com/document/product/614/18940#.E5.9F.9F.E5.90.8D) for the latest list):
+
+`Beijing`, `Guangzhou`, `Shanghai`, `Chengdu`, `Nanjing`, `Chongqing`, `Hongkong`, `Siliconvalley`, `Ashburn`, `Singapore`, `Bangkok`, `Frankfurt`, `Tokyo`, `Seoul`, `Jakarta`, `Saopaulo`, `ShenzhenFSI`, `ShanghaiFSI`, `BeijingFSI`, `ShanghaiADC`.
+
+The `Region` / `NetworkType` types are `string` aliases — you can freely define your own values when needed.
+
+## Authentication
+
+### Strong Auth (API Key)
+
+Get your `AccessKeyID` / `AccessKeySecret` from the [CAM console](https://console.cloud.tencent.com/cam/capi). Make sure the credential owner has the [permission to upload logs via API/SDK](https://cloud.tencent.com/document/product/614/68374#.E4.BD.BF.E7.94.A8-api-.E4.B8.8A.E4.BC.A0.E6.95.B0.E6.8D.AE).
+
+```go
+cfg.AccessKeyID     = "<YourSecretID>"
+cfg.AccessKeySecret = "<YourSecretKey>"
+// Optional: use a temporary security token (STS)
+cfg.AccessToken     = "<YourSecurityToken>"
+```
+
+### Weak Auth (Anonymous / Uin only)
+
+Besides API keys, the SDK also supports **anonymous upload** using only the account `Uin` — no `AccessKeyID` / `AccessKeySecret` is required.
+
+**Prerequisite**: the target topic MUST have **Anonymous Upload → API/SDK log upload** enabled, otherwise the server responds `401 Unauthorized`.
+
+`Uin` and `AccessKeyID + AccessKeySecret` are **mutually exclusive but one is required**; creating a client with neither returns an error.
+
+```go
+// Async producer
+cfg := cls.GetDefaultAsyncProducerClientConfig()
+cfg.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+cfg.Uin      = "100012345678" // account Uin
+
+// Sync producer
+scfg := cls.GetDefaultSyncProducerClientConfig()
+scfg.Endpoint = "ap-guangzhou.cls.tencentcs.com"
+scfg.Uin      = "100012345678"
+```
+
+**Auth mode is inferred from credentials:**
+
+| AccessKeyID + AccessKeySecret | Uin | Auth Mode |
+| --- | --- | --- |
+| ✅ | ❌ | Strong (Cloud API signature) |
+| ❌ | ✅ | **Weak (anonymous)** |
+| ✅ | ✅ | Strong; `Uin` is ignored |
+| ❌ | ❌ | `MissAccessKeyId` error at client creation |
+
+Additional rules:
+
+- `Uin` must be a **digits-only** string, otherwise `InvalidUin` is returned.
+- **AK/SK take precedence** — if both are set, strong auth is used so the security level is never silently downgraded.
+- `ResetSecretToken()` is a **no-op** in weak-auth mode (a warn log is printed).
+
+⚠️ **Security notice**
+
+- Weak auth is for **log upload only**; log consumption (`consumer`) still requires AK/SK.
+- Weak auth only guarantees transport tamper-resistance; **it does NOT authenticate the caller identity**. The security level is equivalent to anonymous write. Use it only in trusted network environments.
+
+### Refreshing Temporary Credentials
+
+When using STS temporary credentials, call `ResetSecretToken` before the token expires:
+
+```go
+// Async producer
+err := producer.Client.ResetSecretToken(newSecretID, newSecretKey, newSecurityToken)
+
+// Sync producer
+err := syncClient.ResetSecretToken(newSecretID, newSecretKey, newSecurityToken)
+```
+
+## Producer
+
+### Async Producer
+
+The async producer buffers logs in memory, aggregates them into batches and dispatches them via a worker pool. It returns immediately from `SendLog` / `SendLogList` and delivers success/failure via a user-defined `CallBack`.
+
+**Why use the async producer?**
+
+- **Non-blocking send** with per-log callbacks.
+- **Graceful shutdown**: `Close(timeoutMs)` flushes buffered data before returning.
+- **Per-log observability**: implement your own `CallBack.Success` / `CallBack.Fail`.
+- **Simple config**: one struct configures batching, retry, timeouts and more.
+- **Auto retry**: retries on 429 / 5xx errors with exponential backoff.
+- **High throughput**: engineered on top of goroutines.
+
+Basic lifecycle:
+
+```go
+producer, err := cls.NewAsyncProducerClient(cfg)
+if err != nil { /* ... */ }
+producer.Start()                 // start background workers
+_ = producer.SendLog(topicID, log, callback)
+_ = producer.SendLogList(topicID, logs, callback)
+_ = producer.Close(60_000)       // wait up to 60s for graceful drain
+```
+
+### Sync Producer
+
+The sync producer sends logs immediately in the calling goroutine. Choose it when you need back-pressure or strict per-call semantics.
+
+```go
+cfg := cls.GetDefaultSyncProducerClientConfig()
+cfg.SetEndpointByRegionAndNetworkType(cls.Guangzhou, cls.Extranet)
+cfg.AccessKeyID     = "<YourSecretID>"
+cfg.AccessKeySecret = "<YourSecretKey>"
+cfg.CompressType    = "zstd"
+
+client, err := cls.NewSyncProducerClient(cfg)
+if err != nil { /* ... */ }
+
+logs := make([]*cls.Log, 0, 100)
+for i := 0; i < 100; i++ {
+    logs = append(logs, cls.NewCLSLog(time.Now().Unix(),
+        map[string]string{"number": fmt.Sprint(i)}))
+}
+
+ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+defer cancel()
+
+if err := client.SendLogList(ctx, topicID, logs); err != nil {
+    log.Fatal(err)
+}
+```
+
+Server-side constraints enforced by the sync producer: **a single request must not exceed 5 MB and 10 000 log entries**.
+
+### Async Producer Config Reference
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `Endpoint` | `string` | — | CLS endpoint host, e.g. `ap-guangzhou.cls.tencentcs.com`. |
+| `AccessKeyID` / `AccessKeySecret` | `string` | — | Permanent API credentials. |
+| `AccessToken` | `string` | — | Optional STS security token. |
+| `Uin` | `string` | — | Weak-auth (anonymous) account ID. See [Weak Auth](#weak-auth-anonymous--uin-only). |
+| `Source` | `string` | local IP | Log `source` field written into `LogGroup.Source`. |
+| `HostName` | `string` | — | Optional hostname written into `LogGroup.Hostname`. |
+| `CompressType` | `string` | `lz4` | `lz4` or `zstd`. |
+| `Timeout` | `int` (ms) | `10000` | HTTP request timeout. |
+| `IdleConn` | `int` | `50` | Max idle connections per host. |
+| `TotalSizeLnBytes` | `int64` | `100 MB` | Max in-memory buffered bytes. |
+| `MaxSendWorkerCount` | `int64` | `50` | Max concurrent send goroutines. |
+| `MaxBlockSec` | `int` | `60` | Max seconds `SendLog` blocks when the buffer is full. `0` = fail immediately; negative = block forever. |
+| `MaxBatchSize` | `int64` | `512 KB` | Batch flush threshold (bytes). Max `5 MB`. |
+| `MaxBatchCount` | `int` | `4096` | Batch flush threshold (entries). Max `40960`. |
+| `LingerMs` | `int64` | `2000` | Max time a batch may linger before being flushed (min `100`). |
+| `Retries` | `int` | `10` | Retry attempts on retryable errors. `<=0` disables retry. |
+| `MaxReservedAttempts` | `int` | `11` | Max attempt records returned to the callback. |
+| `BaseRetryBackoffMs` | `int64` | `100` | Base backoff for the first retry (exponential: `base * 2^(N-1)`). |
+| `MaxRetryBackoffMs` | `int64` | `50000` | Retry backoff upper bound. |
+
+The sync producer only uses the subset relevant to per-call sending: `Endpoint`, `AccessKeyID/Secret/Token`, `Uin`, `Timeout`, `IdleConn`, `CompressType`, `NeedSource`, `HostName`.
+
+## Consumer
+
+The `consumer` sub-package provides a full-featured consumer-group implementation:
+
+- **Consumer group management**: auto-create if missing, reuse otherwise.
+- **Heartbeat & partition assignment**: dynamic rebalance via `PartitionStrategy=2`; scale out horizontally.
+- **Multi-partition concurrency**: each partition has its own goroutine that fetches logs and serially invokes your `Processor`.
+- **Offset persistence**: advanced on fetch, flushed every 60 s, flushed after 30 s idle, force-flushed on exit — resume-from-checkpoint is transparent.
+- **Server-side DSL pre-filter**: set `ConsumerOption.Query` to a [DSL expression](https://cloud.tencent.com/document/product/614/37908) so only matching logs are delivered, saving bandwidth and CPU. Example: `log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed")))`.
+- **Bounded consumption**: with `OffsetEndTime` set, the worker auto-exits when all partitions catch up.
+- **Graceful degradation**: `InvalidOffset` auto-recovers to the latest offset; heartbeat timeout triggers reassignment; a panicking `Process` does not stall the pipeline.
+
+Minimal usage: implement the `Processor` interface → build a `ConsumerOption` → `consumer.NewConsumerWorker(option, processor).Run(ctx)`.
+
+For detailed configuration, concurrency model, error handling, FAQ and a runnable example (`consumer/demo/consumer_demo.go`), see [`consumer/README.md`](./consumer/README.md).
+
+## Compression
+
+| CompressType | Header `x-cls-compress-type` | Notes |
+| --- | --- | --- |
+| `lz4` (default) | `lz4` | Default when `CompressType` is empty. |
+| `zstd` | `zstd` | Better compression ratio, slightly more CPU. |
+
+Set it via `cfg.CompressType = "zstd"`.
+
+## Regenerate Protobuf
+
+If you modified `cls.proto`, regenerate the Go stub:
+
+```bash
 protoc --gofast_out=. cls.proto
 ```
 
----
+## License
 
-## 三、消费 SDK 说明
-
-本 SDK 内置了基于「消费组（Consumer Group）」的高阶日志消费模块 `consumer`，主要能力：
-
-- **消费组管理**：不存在自动创建、已存在自动复用。
-- **心跳与分区分配**：服务端按 `PartitionStrategy=2` 做动态 rebalance，多实例横向扩容自动均衡分区。
-- **多分区并发消费**：每个分区独立 goroutine 拉取日志并串行调用业务 `Processor`。
-- **Offset 自动持久化**：拉取自动推进 + 60s 周期兜底 + 空闲 30s flush + 退出强制 flush，断点续传无需关心。
-- **服务端 DSL 预过滤**：通过 `ConsumerOption.Query` 传入 DSL 表达式，命中日志才下发，节省带宽与客户端 CPU。例如 `log_keep(op_and(op_gt(v("status"), 400), str_exist(v("message"), "access failed")))` 仅消费 `status>400` 且 `message` 含 `access failed` 的日志。详见 [日志消费 DSL 过滤语法](https://cloud.tencent.com/document/product/614/37908)。
-- **智能停止**：配置 `OffsetEndTime` 后所有分区追上末尾即自动退出整个 worker。
-- **优雅退出与失败自愈**：`InvalidOffset` 自动取最新 offset、心跳超时自动重新分配分区、`Process` panic 不阻塞消费。
-
-最简使用方式：实现 `Processor` 接口 → 构造 `ConsumerOption` → `consumer.NewConsumerWorker(option, processor).Run(ctx)` 即可。
-
-> 详细使用说明、配置参数详解、并发模型、错误处理、FAQ 以及可运行示例（`consumer/demo/consumer_demo.go`）请参见 [`consumer/README.md`](./consumer/README.md)。
-
+Distributed under the [Apache License 2.0](./LICENSE).
