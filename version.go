@@ -5,7 +5,7 @@ import (
 )
 
 var userAgent = "cls-go-sdk"
-var version = "1.0.7"
+var version = "1.0.15"
 
 // GetUserAgent ...
 func getUserAgent() string {
