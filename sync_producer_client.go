@@ -5,6 +5,17 @@ import (
 	"errors"
 )
 
+const (
+	// MaxLogSize is the maximum size of batch logs.
+	MaxLogSize = 20 * 1024 * 1024
+)
+
+// Errors returned by SyncProducerClient send methods. Callers can use
+var (
+	// ErrLogSizeExceeded is returned when the total size of logs exceeds 20M.
+	ErrLogSizeExceeded = errors.New("logs must be less than 20M")
+)
+
 // SyncProducerClient synchronized producer client
 type SyncProducerClient struct {
 	config *SyncProducerClientConfig
@@ -58,8 +69,8 @@ func (c *SyncProducerClient) SendLogGroupList(ctx context.Context, topicID strin
 			return err
 		}
 		totalSize += size
-		if totalSize > 5242880 || len(logGroup.GetLogs()) > 10000 {
-			return errors.New("logs must be less than 5M and 10000 lines")
+		if totalSize > MaxLogSize {
+			return ErrLogSizeExceeded
 		}
 		if c.config.NeedSource {
 			logGroup.Source = &c.source
@@ -78,8 +89,8 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 	if err != nil {
 		return err
 	}
-	if size > 5242880 || len(logList) > 10000 {
-		return errors.New("logs must be less than 5M and 10000 lines")
+	if size > MaxLogSize {
+		return ErrLogSizeExceeded
 	}
 	logGroup := &LogGroup{
 		Logs: logList,
