@@ -3,6 +3,7 @@ package tencentcloud_cls_sdk_go
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pierrec/lz4"
@@ -31,6 +33,7 @@ const (
 
 type Options struct {
 	Host         string
+	Scheme       string
 	Timeout      int
 	IdleConn     int
 	CompressType string
@@ -121,20 +124,36 @@ func NewCLSClient(options *Options) (*CLSClient, *CLSError) {
 	if err := options.validateOptions(); err != nil {
 		return nil, err
 	}
+	// 确保Host包含正确的协议头
+	if strings.HasPrefix(options.Host, "http://") {
+		options.Scheme = "http"
+		options.Host = strings.TrimPrefix(options.Host, "http://")
+	} else if strings.HasPrefix(options.Host, "https://") {
+		options.Scheme = "https"
+		options.Host = strings.TrimPrefix(options.Host, "https://")
+	} else {
+		options.Scheme = "http"
+	}
 	client.options = options
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   time.Duration(options.Timeout) * time.Millisecond,
+			KeepAlive: 300 * time.Second,
+		}).DialContext,
+		MaxIdleConns:        options.IdleConn,
+		MaxIdleConnsPerHost: options.IdleConn,
+		MaxConnsPerHost:     options.IdleConn,
+		IdleConnTimeout:     time.Duration(300) * time.Second,
+	}
+	if options.Scheme == "https" {
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
 	client.client = &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   time.Duration(options.Timeout) * time.Millisecond,
-				KeepAlive: 300 * time.Second,
-			}).DialContext,
-			MaxIdleConns:        options.IdleConn,
-			MaxIdleConnsPerHost: options.IdleConn,
-			MaxConnsPerHost:     options.IdleConn,
-			IdleConnTimeout:     time.Duration(300) * time.Second,
-		},
-		Timeout: time.Duration(options.Timeout) * time.Millisecond,
+		Transport: transport,
+		Timeout:   time.Duration(options.Timeout) * time.Millisecond,
 	}
 	return client, nil
 }
@@ -179,12 +198,27 @@ func (client *CLSClient) zstdCompress(body []byte, params url.Values, urlReport 
 	return req, nil
 }
 
+func (client *CLSClient) deflateCompress(body []byte, params url.Values, urlReport string) (*http.Request, *CLSError) {
+	data, err := DeflateCompress(body)
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, urlReport, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, NewError(-1, "", BAD_REQUEST, err)
+	}
+	req.URL.RawQuery = params.Encode()
+	req.Header.Add("x-cls-compress-type", "deflate")
+	return req, nil
+}
+
 // Send cls实际发送接口
 func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*LogGroup) *CLSError {
 	params := url.Values{"topic_id": []string{topicId}}
 	headers := url.Values{"Host": {client.options.Host}, "Content-Type": {"application/x-protobuf"}}
 
-	urlReport := fmt.Sprintf("http://%s/structuredlog", client.options.Host)
+	urlReport := fmt.Sprintf("%s://%s/structuredlog", client.options.Scheme, client.options.Host)
 
 	var logGroupList LogGroupList
 	for _, item := range group {
@@ -197,6 +231,10 @@ func (client *CLSClient) Send(ctx context.Context, topicId string, group ...*Log
 
 	if client.options.CompressType == "zstd" {
 		if req, clsErr = client.zstdCompress(body, params, urlReport); clsErr != nil {
+			return clsErr
+		}
+	} else if client.options.CompressType == "deflate" {
+		if req, clsErr = client.deflateCompress(body, params, urlReport); clsErr != nil {
 			return clsErr
 		}
 	} else {
