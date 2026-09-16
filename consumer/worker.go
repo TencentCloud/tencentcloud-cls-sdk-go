@@ -56,7 +56,7 @@ type ConsumerOption struct {
 	// Only logs that match the expression are returned by the server. Leave empty to
 	// disable server-side filtering. See:
 	// https://cloud.tencent.com/document/product/614/37908
-	Query                string
+	Query string
 }
 
 // NewConsumerWorker create consumer Worker
