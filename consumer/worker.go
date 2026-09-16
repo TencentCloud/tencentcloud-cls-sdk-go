@@ -56,17 +56,17 @@ type ConsumerOption struct {
 	// Only logs that match the expression are returned by the server. Leave empty to
 	// disable server-side filtering. See:
 	// https://cloud.tencent.com/document/product/614/37908
-	Query                string
+	Query string
 }
 
 // NewConsumerWorker create consumer Worker
 //
 // Deprecated: it silently ignores the error returned while building the underlying
 // cloud API client and returns nil when the configuration is invalid (e.g. empty
-// AccessKeyID / AccessKey). Use NewConsumerWorkerFromOption instead, which returns
+// AccessKeyID / AccessKey). Use NewConsumerWorkerWithOption instead, which returns
 // an error.
 func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *ConsumerWorker {
-	worker, err := NewConsumerWorkerFromOption(consumerOption, processor)
+	worker, err := NewConsumerWorkerWithOption(consumerOption, processor)
 	if err != nil {
 		cls.GetZapLoggerAdapter().Error("Failed to create consumer worker",
 			cls.Field{Key: "error", Value: err.Error()},
@@ -76,10 +76,10 @@ func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *Con
 	return worker
 }
 
-// NewConsumerWorkerFromOption creates a consumer Worker and reports configuration
+// NewConsumerWorkerWithOption creates a consumer Worker and reports configuration
 // errors (invalid credentials, missing endpoint, ...) instead of returning a worker
 // backed by an unusable cloud API client.
-func NewConsumerWorkerFromOption(consumerOption *ConsumerOption, processor Processor) (*ConsumerWorker, error) {
+func NewConsumerWorkerWith(consumerOption *ConsumerOption, processor Processor) (*ConsumerWorker, error) {
 	if consumerOption == nil {
 		return nil, fmt.Errorf("consumer option cannot be nil")
 	}

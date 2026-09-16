@@ -292,9 +292,9 @@ The `consumer` sub-package provides a full-featured consumer-group implementatio
 - **Bounded consumption**: with `OffsetEndTime` set, the worker auto-exits when all partitions catch up.
 - **Graceful degradation**: `InvalidOffset` auto-recovers to the latest offset; heartbeat timeout triggers reassignment; a panicking `Process` does not stall the pipeline.
 
-Minimal usage: implement the `Processor` interface → build a `ConsumerOption` → `consumer.NewConsumerWorkerFromOption(option, processor)` (returns an error, check it before calling `Run(ctx)`).
+Minimal usage: implement the `Processor` interface → build a `ConsumerOption` → `consumer.NewConsumerWorkerWithOption(option, processor)` (returns an error, check it before calling `Run(ctx)`).
 
-> `consumer.NewConsumerWorker` is deprecated: it swallows the error raised while building the underlying cloud API client (e.g. empty AccessKeyID / AccessKey). Use `consumer.NewConsumerWorkerFromOption` instead. Likewise `cls.NewYunApiLogClient` / `NewYunApiLogClientWithConfig` / `NewYunApiLogClientSimple` are deprecated in favor of `cls.NewYunApiLogClientFromConfig`.
+> `consumer.NewConsumerWorker` is deprecated: it swallows the error raised while building the underlying cloud API client (e.g. empty AccessKeyID / AccessKey). Use `consumer.NewConsumerWorkerWithOption` instead. Likewise `cls.NewYunApiLogClient` / `NewYunApiLogClientWithConfig` / `NewYunApiLogClientSimple` are deprecated in favor of `cls.NewYunApiLogClientFromConfig`.
 
 For detailed configuration, concurrency model, error handling, FAQ and a runnable example (`consumer/demo/consumer_demo.go`), see [`consumer/README.md`](./consumer/README.md).
 
