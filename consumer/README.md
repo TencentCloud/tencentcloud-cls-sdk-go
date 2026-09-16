@@ -116,7 +116,9 @@ func (p *SampleProcessor) Process(
 
 ### 2. 启动 ConsumerWorker
 
-下面示例与 `consumer/demo/consumer_demo.go` 完全对齐：构造 `ConsumerOption` → `NewConsumerWorker` → `Run(ctx)` → 监听信号 → `cancel()` → 等待退出。
+下面示例与 `consumer/demo/consumer_demo.go` 完全对齐：构造 `ConsumerOption` → `NewConsumerWorkerWithOption` → `Run(ctx)` → 监听信号 → `cancel()` → 等待退出。
+
+> `NewConsumerWorker` 已废弃（会忽略底层云 API 客户端构造错误，AccessKeyID/AccessKey 为空时返回 nil），新代码请使用返回 error 的 `NewConsumerWorkerWithOption`。
 
 ```go
 //go:build examples
@@ -212,7 +214,10 @@ func main() {
 	processor1 := NewSampleProcessor()
 
 	// create consumer Worker
-	worker1 := consumer.NewConsumerWorker(consumerOption1, processor1)
+	worker1, createErr := consumer.NewConsumerWorkerWithOption(consumerOption1, processor1)
+	if createErr != nil {
+		log.Fatalf("Failed to create consumer1: %v", createErr)
+	}
 
 	// create context for signal handling
 	ctx, cancel := context.WithCancel(context.Background())
@@ -392,7 +397,7 @@ adaptor := &consumer.ConsumerProcessorAdaptor{
         return true // 返回 false 时本批不会触发自动 SaveOffset
     },
 }
-worker := consumer.NewConsumerWorker(opt, adaptor)
+worker, err := consumer.NewConsumerWorkerWithOption(opt, adaptor)
 ```
 
 > ConsumerWorker 会对 `*ConsumerProcessorAdaptor` 类型做**分区级 clone**（每分区独立 `ProcessorBase`，避免 `TopicID/PartitionID` 字段被多分区互相覆盖）；自定义实现的 Processor 默认在多分区间共享，并由 `worker.ProcessorLock` 串行化 `Process`。
@@ -439,7 +444,7 @@ stats := worker.GetStats()
 ## 十一、生命周期与并发模型
 
 ```
-NewConsumerWorker
+NewConsumerWorkerWithOption
    └─ Run(ctx)
         ├─ createConsumerGroup        // 首次 Create / 已存在则 Update
         ├─ HeartbeatWorker.Run        // 单独 goroutine：周期心跳 + 分区分配

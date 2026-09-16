@@ -8,16 +8,21 @@ import (
 )
 
 func TestSyncProduce(t *testing.T) {
+	credentials := requireIntegrationCredentials(t)
+
 	config := GetDefaultSyncProducerClientConfig()
 	config.Endpoint = "ap-guangzhou.cls.tencentcs.com"
-	config.AccessKeyID = ""
-	config.AccessKeySecret = ""
-	config.AccessToken = ""
+	if credentials.Endpoint != "" {
+		config.Endpoint = credentials.Endpoint
+	}
+	config.AccessKeyID = credentials.SecretID
+	config.AccessKeySecret = credentials.SecretKey
+	config.AccessToken = credentials.SecretToken
 	config.CompressType = "zstd"
-	topicID := ""
+	topicID := credentials.TopicID
 	client, err := NewSyncProducerClient(config)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("NewSyncProducerClient returned error: %v", err)
 	}
 	logList := make([]*Log, 0)
 	for i := 0; i < 100; i++ {
@@ -33,16 +38,18 @@ func TestSyncProduce(t *testing.T) {
 }
 
 func TestSyncProduceByRegionAndNetworkType(t *testing.T) {
+	credentials := requireIntegrationCredentials(t)
+
 	config := GetDefaultSyncProducerClientConfig()
 	config.SetEndpointByRegionAndNetworkType(Shanghai, Intranet)
-	config.AccessKeyID = ""
-	config.AccessKeySecret = ""
-	config.AccessToken = ""
+	config.AccessKeyID = credentials.SecretID
+	config.AccessKeySecret = credentials.SecretKey
+	config.AccessToken = credentials.SecretToken
 	config.CompressType = "zstd"
-	topicID := ""
+	topicID := credentials.TopicID
 	client, err := NewSyncProducerClient(config)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("NewSyncProducerClient returned error: %v", err)
 	}
 	logList := make([]*Log, 0)
 	for i := 0; i < 100; i++ {

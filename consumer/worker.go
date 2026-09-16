@@ -56,20 +56,52 @@ type ConsumerOption struct {
 	// Only logs that match the expression are returned by the server. Leave empty to
 	// disable server-side filtering. See:
 	// https://cloud.tencent.com/document/product/614/37908
-	Query                string
+	Query string
 }
 
 // NewConsumerWorker create consumer Worker
+//
+// Deprecated: it silently ignores the error returned while building the underlying
+// cloud API client and returns nil when the configuration is invalid (e.g. empty
+// AccessKeyID / AccessKey). Use NewConsumerWorkerWithOption instead, which returns
+// an error.
 func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *ConsumerWorker {
+	worker, err := NewConsumerWorkerWithOption(consumerOption, processor)
+	if err != nil {
+		cls.GetZapLoggerAdapter().Error("Failed to create consumer worker",
+			cls.Field{Key: "error", Value: err.Error()},
+		)
+		return nil
+	}
+	return worker
+}
+
+// NewConsumerWorkerWithOption creates a consumer Worker and reports configuration
+// errors (invalid credentials, missing endpoint, ...) instead of returning a worker
+// backed by an unusable cloud API client.
+func NewConsumerWorkerWithOption(consumerOption *ConsumerOption, processor Processor) (*ConsumerWorker, error) {
+	if consumerOption == nil {
+		return nil, fmt.Errorf("consumer option cannot be nil")
+	}
+	if processor == nil {
+		return nil, fmt.Errorf("processor cannot be nil")
+	}
+	if consumerOption.Endpoint == "" {
+		return nil, fmt.Errorf("consumer option endpoint cannot be empty")
+	}
+
 	// Always pass the real region down: the SDK uses Region to fill the X-TC-Region
 	// public request header (required by the server). Internal endpoint switching is
-	// handled inside NewYunApiLogClient based on the internal flag.
-	yunapi := cls.NewYunApiLogClient(
-		consumerOption.AccessKeyID,
-		consumerOption.AccessKey,
-		consumerOption.Internal, "", "",
-		consumerOption.Region,
-	)
+	// handled inside the cloud API client based on the internal flag.
+	yunapi, err := cls.NewYunApiLogClientFromConfig(cls.YunApiLogClientConfig{
+		AccessKeyId: consumerOption.AccessKeyID,
+		AccessKey:   consumerOption.AccessKey,
+		Internal:    consumerOption.Internal,
+		Region:      consumerOption.Region,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create yunapi log client: %v", err)
+	}
 
 	pullLogs := cls.NewPullLogsClient(
 		consumerOption.Endpoint,
@@ -99,7 +131,7 @@ func NewConsumerWorker(consumerOption *ConsumerOption, processor Processor) *Con
 		Logger:                      cls.GetZapLoggerAdapter(),
 		ctx:                         ctx,
 		cancel:                      cancel,
-	}
+	}, nil
 }
 
 // Run start consumer Worker with context

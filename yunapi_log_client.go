@@ -3,6 +3,7 @@ package tencentcloud_cls_sdk_go
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"io"
@@ -33,6 +34,10 @@ type YunApiLogClientConfig struct {
 }
 
 // NewYunApiLogClientSimple simple constructor, only requires essential parameters
+//
+// Deprecated: it silently ignores the underlying client construction error and
+// returns nil when the credentials are invalid (e.g. empty AccessKeyId /
+// AccessKey). Use NewYunApiLogClientFromConfig instead, which returns an error.
 func NewYunApiLogClientSimple(accessKeyId, accessKey string) *YunApiLogClient {
 	return NewYunApiLogClientWithConfig(YunApiLogClientConfig{
 		AccessKeyId:   accessKeyId,
@@ -45,28 +50,50 @@ func NewYunApiLogClientSimple(accessKeyId, accessKey string) *YunApiLogClient {
 }
 
 // NewYunApiLogClientWithConfig constructor using configuration struct, supports optional parameters
+//
+// Deprecated: it silently ignores the underlying client construction error and
+// returns nil when the credentials are invalid (e.g. empty AccessKeyId /
+// AccessKey). Use NewYunApiLogClientFromConfig instead, which returns an error.
 func NewYunApiLogClientWithConfig(config YunApiLogClientConfig) *YunApiLogClient {
-	// Set default values
-	if config.Internal == false && config.SecurityToken == "" && config.Source == "" && config.Region == "" {
-		// If all optional parameters are zero values
-		config.Internal = false   // default value
-		config.SecurityToken = "" // default value None
-		config.Source = ""        // default value None
-		config.Region = ""        // default value ''
+	client, err := NewYunApiLogClientFromConfig(config)
+	if err != nil {
+		GetZapLoggerAdapter().Error("Failed to create YunApiLogClient",
+			Field{Key: "error", Value: err.Error()},
+		)
+		return nil
 	}
-
-	return NewYunApiLogClient(
-		config.AccessKeyId,
-		config.AccessKey,
-		config.Internal,
-		config.SecurityToken,
-		config.Source,
-		config.Region,
-	)
+	return client
 }
 
 // NewYunApiLogClient constructor
+//
+// Deprecated: it silently ignores the underlying client construction error and
+// returns nil when the credentials are invalid (e.g. empty accessKeyId /
+// accessKey). Use NewYunApiLogClientFromConfig instead, which returns an error.
 func NewYunApiLogClient(accessKeyId, accessKey string, internal bool, securityToken, source, region string) *YunApiLogClient {
+	return NewYunApiLogClientWithConfig(YunApiLogClientConfig{
+		AccessKeyId:   accessKeyId,
+		AccessKey:     accessKey,
+		Internal:      internal,
+		SecurityToken: securityToken,
+		Source:        source,
+		Region:        region,
+	})
+}
+
+// NewYunApiLogClientFromConfig creates a YunApiLogClient from the given configuration.
+// Unlike the deprecated constructors it reports credential / option errors instead of
+// returning a client whose embedded *CLSClient is nil (which later panics on use).
+func NewYunApiLogClientFromConfig(config YunApiLogClientConfig) (*YunApiLogClient, error) {
+	// Fail fast on missing credentials: cloud API calls are always TC3-signed, so both
+	// AccessKeyId and AccessKey are mandatory here (weak/uin auth is not supported).
+	if config.AccessKeyId == "" {
+		return nil, NewError(-1, "", MISS_ACCESS_KEY_ID, errors.New("accessKeyId cannot be empty"))
+	}
+	if config.AccessKey == "" {
+		return nil, NewError(-1, "", MISS_ACCESS_SECRET, errors.New("accessKey cannot be empty"))
+	}
+
 	// Endpoint resolution:
 	//   1. internal=true  => always use the VPC internal endpoint, regardless of region.
 	//      The region is still kept on the client and sent via the X-TC-Region header
@@ -74,34 +101,37 @@ func NewYunApiLogClient(accessKeyId, accessKey string, internal bool, securityTo
 	//   2. region != ""   => use the region-specific public endpoint.
 	//   3. otherwise      => use the default public endpoint.
 	var endpoint string
-	if internal {
+	if config.Internal {
 		endpoint = "cls.internal.tencentcloudapi.com"
-	} else if region != "" {
-		endpoint = fmt.Sprintf("cls.%s.tencentcloudapi.com", region)
+	} else if config.Region != "" {
+		endpoint = fmt.Sprintf("cls.%s.tencentcloudapi.com", config.Region)
 	} else {
 		endpoint = "cls.tencentcloudapi.com"
 	}
 
-	clsClient, _ := NewCLSClient(&Options{
+	clsClient, clsErr := NewCLSClient(&Options{
 		Host:         endpoint,
 		Timeout:      30000,
 		IdleConn:     50,
 		CompressType: "lz4",
 		Credentials: Credentials{
-			SecretID:    accessKeyId,
-			SecretKEY:   accessKey,
-			SecretToken: securityToken,
+			SecretID:    config.AccessKeyId,
+			SecretKEY:   config.AccessKey,
+			SecretToken: config.SecurityToken,
 		},
 	})
+	if clsErr != nil {
+		return nil, clsErr
+	}
 
 	return &YunApiLogClient{
 		CLSClient: clsClient,
-		region:    region,
-		secretId:  accessKeyId,
-		secretKey: accessKey,
-		internal:  internal,
-		source:    source,
-	}
+		region:    config.Region,
+		secretId:  config.AccessKeyId,
+		secretKey: config.AccessKey,
+		internal:  config.Internal,
+		source:    config.Source,
+	}, nil
 }
 
 // DoRequest

@@ -91,7 +91,10 @@ func main() {
 	processor1 := NewSampleProcessor()
 
 	// create consumer Worker
-	worker1 := consumer.NewConsumerWorker(consumerOption1, processor1)
+	worker1, createErr := consumer.NewConsumerWorkerWithOption(consumerOption1, processor1)
+	if createErr != nil {
+		log.Fatalf("Failed to create consumer1: %v", createErr)
+	}
 
 	// create context for signal handling
 	ctx, cancel := context.WithCancel(context.Background())
