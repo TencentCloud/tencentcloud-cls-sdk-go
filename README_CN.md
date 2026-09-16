@@ -296,7 +296,9 @@ if err := client.SendLogList(ctx, topicID, logs); err != nil {
 - **智能停止**：配置 `OffsetEndTime` 后所有分区追上末尾即自动退出整个 worker。
 - **优雅退出与失败自愈**：`InvalidOffset` 自动取最新 offset、心跳超时自动重新分配分区、`Process` panic 不阻塞消费。
 
-最简使用方式：实现 `Processor` 接口 → 构造 `ConsumerOption` → `consumer.NewConsumerWorker(option, processor).Run(ctx)`。
+最简使用方式：实现 `Processor` 接口 → 构造 `ConsumerOption` → `consumer.NewConsumerWorkerFromOption(option, processor)`（返回 error，需判断后再 `Run(ctx)`）。
+
+> `consumer.NewConsumerWorker` 已废弃：它会忽略底层云 API 客户端的构造错误（例如 AccessKeyID/AccessKey 为空），请改用 `consumer.NewConsumerWorkerFromOption`。同理，`cls.NewYunApiLogClient` / `NewYunApiLogClientWithConfig` / `NewYunApiLogClientSimple` 已废弃，请改用 `cls.NewYunApiLogClientFromConfig`。
 
 详细使用说明、配置参数、并发模型、错误处理、FAQ 以及可运行示例（`consumer/demo/consumer_demo.go`）请参见 [`consumer/README.md`](./consumer/README.md)。
 
