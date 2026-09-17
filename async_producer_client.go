@@ -95,44 +95,18 @@ func validateProducerConfig(producerConfig *AsyncProducerClientConfig) *AsyncPro
 }
 
 func (producer *AsyncProducerClient) SendLog(topicId string, log *Log, callback CallBack) error {
-	err := producer.waitTime()
-	if err != nil {
-		return err
-	}
+	// 背压判定与 log 写入现已下沉到 accumulator 的临界区，
+	// 避免原 waitTime（无锁快照）与 append（持锁写）之间的 check-then-act race。
 	return producer.logAccumulator.addLogToProducerBatch(topicId, log, callback)
 }
 
 func (producer *AsyncProducerClient) SendLogList(topicId string, logList []*Log, callback CallBack) (err error) {
-	err = producer.waitTime()
-	if err != nil {
-		return err
-	}
 	return producer.logAccumulator.addLogToProducerBatch(topicId, logList, callback)
 }
 
+// waitTime 已完全下沉到 Accumulator.addLogToProducerBatch 中以保证判额和累加
+// 处于同一个临界区。本方法仅为保留字面兼容，目前已不再被调用。
 func (producer *AsyncProducerClient) waitTime() error {
-	if producer.asyncProducerClientConfig.MaxBlockSec > 0 {
-		for i := 0; i < producer.asyncProducerClientConfig.MaxBlockSec; i++ {
-			if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.asyncProducerClientConfig.TotalSizeLnBytes {
-				time.Sleep(time.Second)
-			} else {
-				return nil
-			}
-		}
-		return errors.New("over producer set maximum blocking time")
-	} else if producer.asyncProducerClientConfig.MaxBlockSec == 0 {
-		if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.asyncProducerClientConfig.TotalSizeLnBytes {
-			return errors.New("over producer set maximum blocking time")
-		}
-	} else if producer.asyncProducerClientConfig.MaxBlockSec < 0 {
-		for {
-			if atomic.LoadInt64(&producer.producerLogGroupSize) > producer.asyncProducerClientConfig.TotalSizeLnBytes {
-				time.Sleep(time.Second)
-			} else {
-				return nil
-			}
-		}
-	}
 	return nil
 }
 
