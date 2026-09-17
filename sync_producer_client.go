@@ -58,8 +58,8 @@ func (c *SyncProducerClient) SendLogGroupList(ctx context.Context, topicID strin
 			return err
 		}
 		totalSize += size
-		if totalSize > 5242880 || len(logGroup.GetLogs()) > 10000 {
-			return errors.New("logs must be less than 5M and 10000 lines")
+		if totalSize > 12582912 {
+			return errors.New("logs must be less than 12M")
 		}
 		if c.config.NeedSource {
 			logGroup.Source = &c.source
@@ -78,8 +78,8 @@ func (c *SyncProducerClient) SendLogList(ctx context.Context, topicID string, lo
 	if err != nil {
 		return err
 	}
-	if size > 5242880 || len(logList) > 10000 {
-		return errors.New("logs must be less than 5M and 10000 lines")
+	if size > 12582912 {
+		return errors.New("logs must be less than 12M")
 	}
 	logGroup := &LogGroup{
 		Logs: logList,
