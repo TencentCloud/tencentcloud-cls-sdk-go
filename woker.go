@@ -40,7 +40,8 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 			producerBatch.result.attemptList = append(producerBatch.result.attemptList, attempt)
 		}
 		producerBatch.result.successful = true
-		asyncAtomic.AddInt64(&worker.producer.producerLogGroupSize, -producerBatch.totalDataSize)
+		// 释放该 batch 在 accumulator 入口预扣的配额（与 accountedSize 口径一致，避免长期漂移）
+		asyncAtomic.AddInt64(&worker.producer.producerLogGroupSize, -producerBatch.accountedSize)
 		if len(producerBatch.callBackList) > 0 {
 			for _, callBack := range producerBatch.callBackList {
 				callBack.Success(producerBatch.result)
@@ -48,12 +49,9 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 		}
 	} else {
 		if worker.retryQueueShutDownFlag.Load() {
-			if len(producerBatch.callBackList) > 0 {
-				for _, callBack := range producerBatch.callBackList {
-					worker.addErrorMessageToBatchAttempt(producerBatch, err)
-					callBack.Fail(producerBatch.result)
-				}
-			}
+			// 只追加一次 attempt，避免多回调场景下重复累加 attemptCount / attemptList
+			worker.addErrorMessageToBatchAttempt(producerBatch, err)
+			worker.executeFailedCallback(producerBatch)
 			return
 		}
 
@@ -100,7 +98,8 @@ func (worker *Worker) startSendTask(ioWorkerWaitGroup *sync.WaitGroup) {
 }
 
 func (worker *Worker) executeFailedCallback(producerBatch *ProducerBatch) {
-	asyncAtomic.AddInt64(&worker.producer.producerLogGroupSize, -producerBatch.totalDataSize)
+	// 释放该 batch 在 accumulator 入口预扣的配额（与成功路径口径一致）
+	asyncAtomic.AddInt64(&worker.producer.producerLogGroupSize, -producerBatch.accountedSize)
 	if len(producerBatch.callBackList) > 0 {
 		for _, callBack := range producerBatch.callBackList {
 			callBack.Fail(producerBatch.result)
