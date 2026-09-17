@@ -9,6 +9,7 @@ import (
 
 type ProducerBatch struct {
 	totalDataSize        int64
+	accountedSize        int64
 	lock                 sync.RWMutex
 	logGroup             *LogGroup
 	logGroupSize         int
@@ -57,6 +58,13 @@ func NewProducerBatch(topicID string, config *AsyncProducerClientConfig, callBac
 		packageID:            packageID,
 	}
 	producerBatch.totalDataSize = int64(producerBatch.logGroup.Size())
+	// accountedSize 使用与 accumulator 判额时相同的口径（GetLogListSize），
+	// 保证入口预扣的字节数与 worker 释放的字节数完全一致，避免长期漂移。
+	if accountedSize, err := GetLogListSize(logs); err == nil {
+		producerBatch.accountedSize = int64(accountedSize)
+	} else {
+		producerBatch.accountedSize = producerBatch.totalDataSize
+	}
 	if callBackFunc != nil {
 		producerBatch.callBackList = append(producerBatch.callBackList, callBackFunc)
 	}
