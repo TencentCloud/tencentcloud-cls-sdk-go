@@ -27,17 +27,22 @@ func (callback *Callback) Fail(result *Result) {
 }
 
 func TestNewAsyncProducerClient(t *testing.T) {
+	credentials := requireIntegrationCredentials(t)
+
 	producerConfig := GetDefaultAsyncProducerClientConfig()
 	producerConfig.Endpoint = "https://ap-guangzhou-open.cls.tencentcs.com"
-	producerConfig.AccessKeyID = ""
-	producerConfig.AccessKeySecret = ""
-	producerConfig.AccessToken = ""
+	if credentials.Endpoint != "" {
+		producerConfig.Endpoint = credentials.Endpoint
+	}
+	producerConfig.AccessKeyID = credentials.SecretID
+	producerConfig.AccessKeySecret = credentials.SecretKey
+	producerConfig.AccessToken = credentials.SecretToken
 	producerConfig.Retries = 10
-	producerConfig.CompressType = "zstd"
-	topicId := ""
+	//producerConfig.CompressType = "zstd"
+	topicId := credentials.TopicID
 	producerInstance, err := NewAsyncProducerClient(producerConfig)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("NewAsyncProducerClient returned error: %v", err)
 	}
 	producerInstance.Start()
 
@@ -62,17 +67,19 @@ func TestNewAsyncProducerClient(t *testing.T) {
 }
 
 func TestNewAsyncProducerClientByRegionAndNetworkType(t *testing.T) {
+	credentials := requireIntegrationCredentials(t)
+
 	producerConfig := GetDefaultAsyncProducerClientConfig()
 	producerConfig.SetEndpointByRegionAndNetworkType(Guangzhou, Intranet)
-	producerConfig.AccessKeyID = ""
-	producerConfig.AccessKeySecret = ""
-	producerConfig.AccessToken = ""
+	producerConfig.AccessKeyID = credentials.SecretID
+	producerConfig.AccessKeySecret = credentials.SecretKey
+	producerConfig.AccessToken = credentials.SecretToken
 	producerConfig.Retries = 10
 	//producerConfig.CompressType = "zstd"
-	topicId := ""
+	topicId := credentials.TopicID
 	producerInstance, err := NewAsyncProducerClient(producerConfig)
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("NewAsyncProducerClient returned error: %v", err)
 	}
 	producerInstance.Start()
 
