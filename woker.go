@@ -71,6 +71,7 @@ func (worker *Worker) sendToServer(producerBatch *ProducerBatch) {
 			}
 			worker.retryQueue.sendToRetryQueue(producerBatch)
 		} else {
+			worker.addErrorMessageToBatchAttempt(producerBatch, err)
 			worker.executeFailedCallback(producerBatch)
 		}
 	}
